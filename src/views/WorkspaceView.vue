@@ -4,11 +4,12 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import {
   Activity, ArrowDownLeft, ArrowUpRight, BriefcaseBusiness, ChevronDown, CircleDollarSign,
-  ClipboardList, FileBarChart, LayoutDashboard, LogOut, Mail, Menu, Plus, Search, Shield,
+  ClipboardList, FileBarChart, LayoutDashboard, LogOut, Mail, Menu, Package, Plus, Search, Shield,
   ShoppingBag, Users, Wallet, X,
 } from '@lucide/vue'
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
+import ProductsPanel from '../components/ProductsPanel.vue'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -58,6 +59,7 @@ const nav = computed(() => {
         { key: 'expenses', icon: ArrowUpRight, permission: 'expenses.view' },
         { key: 'debts', icon: CircleDollarSign, permission: 'debts.view' },
         { key: 'sales', icon: ShoppingBag, permission: 'sales.view' },
+        { key: 'products', icon: Package, permission: 'products.view' },
         { key: 'reports', icon: FileBarChart, permission: 'reports.view' },
         { key: 'employees', icon: Users, permission: 'employees.view' },
         { key: 'inbox', icon: Mail },
@@ -67,6 +69,7 @@ const nav = computed(() => {
         { key: 'expenses', icon: ArrowUpRight, permission: 'expenses.view' },
         { key: 'debts', icon: CircleDollarSign, permission: 'debts.view' },
         { key: 'sales', icon: ShoppingBag, permission: 'sales.view' },
+        { key: 'products', icon: Package, permission: 'products.view' },
         { key: 'inbox', icon: Mail },
       ]
   return [...entries, { key: 'logout', icon: LogOut }]
@@ -83,7 +86,7 @@ function can(permission) {
 
 const titles = {
   dashboard: 'dashboard', sales: 'sales', income: 'income', expenses: 'expenses',
-  debts: 'debts', employees: 'employees', reports: 'reports', inbox: 'inbox', logout: 'logout',
+  debts: 'debts', products: 'products', employees: 'employees', reports: 'reports', inbox: 'inbox', logout: 'logout',
 }
 const activeTitle = computed(() => t(titles[section.value] || 'dashboard'))
 const fields = {
@@ -221,6 +224,13 @@ async function load() {
     loading.value = false
     return
   }
+  if (section.value === 'products') {
+    records.value = []
+    pagination.value = null
+    loading.value = false
+    error.value = ''
+    return
+  }
   if (!isOwner.value && ['dashboard', 'reports', 'employees'].includes(section.value)) {
     error.value = t('forbidden')
     records.value = []
@@ -239,7 +249,7 @@ async function load() {
   error.value = ''
   try {
     if (section.value === 'dashboard' && isOwner.value) {
-      const { data } = await api.get(routeFor())
+      const { data } = await api.get(routeFor(), { timeout: 60000 })
       if (requestId !== loadRequestId) return
       dashboard.value = data
       records.value = data.recent_activity || data.recent_sales || []
@@ -640,7 +650,16 @@ onMounted(async () => {
           <div v-else-if="!loading && !error" class="state-message"><Mail :size="25" /><span>{{ t('emptyInbox') }}</span></div>
         </section>
 
-        <section v-if="section !== 'dashboard' && section !== 'inbox'" class="panel-card">
+        <ProductsPanel
+          v-if="section === 'products' && business"
+          :business-url="businessUrl"
+          :currency="business.currency"
+          :can-create="can('products.create')"
+          :can-edit="can('products.edit')"
+          :can-delete="can('products.delete')"
+        />
+
+        <section v-if="section !== 'dashboard' && section !== 'inbox' && section !== 'products'" class="panel-card">
           <div v-if="['sales', 'income', 'expenses', 'debts', 'reports'].includes(section)" class="table-toolbar">
             <div v-if="['sales', 'income', 'expenses', 'debts', 'reports'].includes(section)" class="search-box"><Search :size="17" /><input v-model="query" :placeholder="t('search')" /></div>
             <div v-if="section === 'reports'" class="report-periods" role="group" :aria-label="t('reportPeriod')">
