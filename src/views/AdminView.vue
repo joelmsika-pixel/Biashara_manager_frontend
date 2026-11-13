@@ -137,7 +137,18 @@ onMounted(loadBusinesses)
   <main class="content admin-page">
     <header class="admin-page-heading">
       <div class="admin-heading-copy">
-        <p class="eyebrow"><Shield :size="14" /> {{ t('platformAdministration') }}</p>
+        <div class="admin-heading-overline">
+          <p class="eyebrow"><Shield :size="14" /> {{ t('platformAdministration') }}</p>
+          <button
+            class="language-button admin-language-button"
+            type="button"
+            :aria-label="`${t('language')}: ${locale === 'en' ? t('english') : t('swahili')}`"
+            :title="locale === 'en' ? t('english') : t('swahili')"
+            @click="switchLanguage"
+          >
+            <img class="language-flag" :src="locale === 'en' ? ukFlag : tanzaniaFlag" alt="" />
+          </button>
+        </div>
         <h1>{{ t('businesses') }}</h1>
         <p class="page-subtitle">{{ t('adminBusinessSubtitle') }}</p>
       </div>
@@ -150,15 +161,6 @@ onMounted(loadBusinesses)
         </button>
         <button class="button button-primary" type="button" @click="openCreate"><Plus :size="16" /> {{ t('createBusiness') }}</button>
         <button class="button button-secondary admin-sign-out" type="button" @click="logout"><LogOut :size="16" /> {{ t('logout') }}</button>
-        <button
-          class="language-button admin-language-button"
-          type="button"
-          :aria-label="`${t('language')}: ${locale === 'en' ? t('english') : t('swahili')}`"
-          :title="locale === 'en' ? t('english') : t('swahili')"
-          @click="switchLanguage"
-        >
-          <img class="language-flag" :src="locale === 'en' ? ukFlag : tanzaniaFlag" alt="" />
-        </button>
       </div>
     </header>
 
@@ -199,14 +201,16 @@ onMounted(loadBusinesses)
         <div v-if="loading" class="admin-refresh-note" role="status"><span class="admin-loader"></span>{{ t('updatingBusinessList') }}</div>
         <article v-for="item in businesses" :key="item.id" class="admin-business-card">
           <div class="admin-business-card-top">
-            <span class="admin-business-avatar">{{ businessInitials(item.name) }}</span>
             <span class="admin-status" :class="item.deleted_at ? 'admin-status-removed' : `admin-status-${item.status}`">
               <span></span>{{ item.deleted_at ? t('removed') : t(item.status) }}
             </span>
           </div>
           <div class="admin-business-card-title">
-            <span>{{ item.business_type || t('businessAccount') }}</span>
-            <h3>{{ item.name }}</h3>
+            <span class="admin-business-avatar">{{ businessInitials(item.name) }}</span>
+            <span class="admin-business-title-copy">
+              <span>{{ item.business_type || t('businessAccount') }}</span>
+              <h3>{{ item.name }}</h3>
+            </span>
           </div>
           <div class="admin-business-card-owner">
             <span class="admin-card-label">{{ t('accountOwner') }}</span>
@@ -284,5 +288,35 @@ onMounted(loadBusinesses)
         </div>
       </form>
     </div>
+
+    <nav class="admin-mobile-nav" :aria-label="t('adminMobileNavigation')">
+      <span class="admin-mobile-nav-item admin-mobile-nav-current" aria-current="page">
+        <BriefcaseBusiness :size="18" />
+        <span>{{ t('businesses') }}</span>
+      </span>
+      <button class="admin-mobile-nav-item" type="button" @click="openCreate">
+        <Plus :size="18" />
+        <span>{{ t('createBusiness') }}</span>
+      </button>
+      <button class="admin-mobile-nav-item" type="button" :disabled="loading" @click="loadBusinesses">
+        <RefreshCw :size="18" :class="{ 'admin-refreshing': loading }" />
+        <span>{{ t('refresh') }}</span>
+      </button>
+      <button
+        class="admin-mobile-nav-item"
+        :class="{ 'admin-mobile-nav-selected': includeDeleted }"
+        type="button"
+        :aria-label="includeDeleted ? t('hideRemoved') : t('showRemoved')"
+        :aria-pressed="includeDeleted"
+        @click="includeDeleted = !includeDeleted; loadBusinesses()"
+      >
+        <Trash2 :size="18" />
+        <span>{{ t('removed') }}</span>
+      </button>
+      <button class="admin-mobile-nav-item" type="button" @click="logout">
+        <LogOut :size="18" />
+        <span>{{ t('logout') }}</span>
+      </button>
+    </nav>
   </main>
 </template>
