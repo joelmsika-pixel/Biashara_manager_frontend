@@ -50,6 +50,7 @@
   "recordOnly": "Records only",
   "recordOnlyHint": "Payments are recorded after they are received outside this app. No money is processed here.",
   "loading": "Loading records…",
+  "preparingWorkspace": "Preparing your workspace…",
   "empty": "Nothing to show yet",
   "save": "Save record",
   "cancel": "Cancel",

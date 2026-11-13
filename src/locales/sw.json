@@ -50,6 +50,7 @@
   "recordOnly": "Rekodi pekee",
   "recordOnlyHint": "Malipo hurekodiwa baada ya kupokelewa nje ya programu hii. Hakuna pesa inayochakatwa hapa.",
   "loading": "Inapakia rekodi…",
+  "preparingWorkspace": "Inaandaa eneo lako la kazi…",
   "empty": "Hakuna rekodi kwa sasa",
   "save": "Hifadhi rekodi",
   "cancel": "Ghairi",
