@@ -1,12 +1,16 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { BriefcaseBusiness, LogOut, Plus, RefreshCw, Shield, Trash2 } from '@lucide/vue'
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
+import ukFlag from '../assets/uk-flag.svg'
+import tanzaniaFlag from '../assets/tanzania-flag.svg'
 
 const auth = useAuthStore()
 const router = useRouter()
+const { t, locale } = useI18n()
 const businesses = ref([])
 const loading = ref(false)
 const saving = ref(false)
@@ -27,6 +31,11 @@ function businessInitials(name = '') {
   return String(name).trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
 }
 
+function switchLanguage() {
+  locale.value = locale.value === 'en' ? 'sw' : 'en'
+  localStorage.setItem('language', locale.value)
+}
+
 async function loadBusinesses() {
   loading.value = true
   error.value = ''
@@ -34,7 +43,7 @@ async function loadBusinesses() {
     const { data } = await api.get('/admin/businesses', { params: { per_page: 100, include_deleted: includeDeleted.value } })
     businesses.value = data.data || []
   } catch (requestError) {
-    error.value = requestError.response?.data?.message || 'Unable to load businesses.'
+    error.value = requestError.response?.data?.message || t('businessLoadFailed')
   } finally {
     loading.value = false
   }
@@ -56,7 +65,7 @@ async function createBusiness() {
   } catch (requestError) {
     formError.value = requestError.response?.data?.message
       || Object.values(requestError.response?.data?.errors || {}).flat()[0]
-      || 'Unable to create the business.'
+      || t('businessCreateFailed')
   } finally {
     saving.value = false
   }
@@ -69,7 +78,7 @@ async function toggleStatus(item) {
     await api.patch(`/admin/businesses/${item.id}/status`, { status })
     item.status = status
   } catch (requestError) {
-    error.value = requestError.response?.data?.message || 'Unable to change business status.'
+    error.value = requestError.response?.data?.message || t('businessStatusFailed')
   }
 }
 
@@ -97,7 +106,7 @@ async function confirmRemoveBusiness() {
     removalTrigger.value = null
     await loadBusinesses()
   } catch (requestError) {
-    confirmError.value = requestError.response?.data?.message || 'Unable to remove the business.'
+    confirmError.value = requestError.response?.data?.message || t('businessRemoveFailed')
   } finally {
     removing.value = false
   }
@@ -109,7 +118,7 @@ async function restoreBusiness(item) {
     await api.post(`/admin/businesses/${item.id}/restore`)
     await loadBusinesses()
   } catch (requestError) {
-    error.value = requestError.response?.data?.message || 'Unable to restore the business.'
+    error.value = requestError.response?.data?.message || t('businessRestoreFailed')
   }
 }
 
@@ -128,35 +137,44 @@ onMounted(loadBusinesses)
   <main class="content admin-page">
     <header class="admin-page-heading">
       <div class="admin-heading-copy">
-        <p class="eyebrow"><Shield :size="14" /> Platform administration</p>
-        <h1>Businesses</h1>
-        <p class="page-subtitle">Manage business accounts and their owners.</p>
+        <p class="eyebrow"><Shield :size="14" /> {{ t('platformAdministration') }}</p>
+        <h1>{{ t('businesses') }}</h1>
+        <p class="page-subtitle">{{ t('adminBusinessSubtitle') }}</p>
       </div>
       <div class="admin-page-actions">
         <button class="button button-secondary" type="button" @click="includeDeleted = !includeDeleted; loadBusinesses()">
-          {{ includeDeleted ? 'Hide removed' : 'Show removed' }}
+          {{ includeDeleted ? t('hideRemoved') : t('showRemoved') }}
         </button>
         <button class="button button-secondary" type="button" :disabled="loading" @click="loadBusinesses">
-          <RefreshCw :size="16" :class="{ 'admin-refreshing': loading }" /> Refresh
+          <RefreshCw :size="16" :class="{ 'admin-refreshing': loading }" /> {{ t('refresh') }}
         </button>
-        <button class="button button-primary" type="button" @click="openCreate"><Plus :size="16" /> Create business</button>
-        <button class="button button-secondary admin-sign-out" type="button" @click="logout"><LogOut :size="16" /> Sign out</button>
+        <button class="button button-primary" type="button" @click="openCreate"><Plus :size="16" /> {{ t('createBusiness') }}</button>
+        <button class="button button-secondary admin-sign-out" type="button" @click="logout"><LogOut :size="16" /> {{ t('logout') }}</button>
+        <button
+          class="language-button admin-language-button"
+          type="button"
+          :aria-label="`${t('language')}: ${locale === 'en' ? t('english') : t('swahili')}`"
+          :title="locale === 'en' ? t('english') : t('swahili')"
+          @click="switchLanguage"
+        >
+          <img class="language-flag" :src="locale === 'en' ? ukFlag : tanzaniaFlag" alt="" />
+        </button>
       </div>
     </header>
 
     <div v-if="error" class="notice-banner" role="alert">{{ error }}</div>
-    <section class="admin-summary" aria-label="Business summary">
+    <section class="admin-summary" :aria-label="t('businessSummary')">
       <article class="admin-summary-card">
         <span class="admin-summary-icon"><BriefcaseBusiness :size="18" /></span>
-        <div><span>Businesses listed</span><strong>{{ businesses.length }}</strong></div>
+        <div><span>{{ t('businessesListed') }}</span><strong>{{ businesses.length }}</strong></div>
       </article>
       <article class="admin-summary-card admin-summary-active">
         <span class="admin-summary-icon"><Shield :size="18" /></span>
-        <div><span>Active</span><strong>{{ activeCount }}</strong></div>
+        <div><span>{{ t('active') }}</span><strong>{{ activeCount }}</strong></div>
       </article>
       <article class="admin-summary-card admin-summary-inactive">
         <span class="admin-summary-icon"><RefreshCw :size="18" /></span>
-        <div><span>Suspended or removed</span><strong>{{ inactiveCount }}</strong></div>
+        <div><span>{{ t('suspendedOrRemoved') }}</span><strong>{{ inactiveCount }}</strong></div>
       </article>
     </section>
 
@@ -165,50 +183,50 @@ onMounted(loadBusinesses)
         <div class="admin-panel-title">
           <span class="admin-panel-icon"><BriefcaseBusiness :size="18" /></span>
           <div>
-            <h2>All businesses</h2>
-            <p>Manage account status and business owners.</p>
+            <h2>{{ t('allBusinesses') }}</h2>
+            <p>{{ t('adminBusinessPanelSubtitle') }}</p>
           </div>
         </div>
-        <span class="admin-list-count">{{ businesses.length }} <span>listed</span></span>
+        <span class="admin-list-count">{{ businesses.length }} <span>{{ t('listed') }}</span></span>
       </div>
       <div v-if="loading && !businesses.length" class="admin-grid-state" role="status">
-        <span class="admin-loader"></span>Loading businesses…
+        <span class="admin-loader"></span>{{ t('loadingBusinesses') }}
       </div>
       <div v-else-if="!loading && !businesses.length" class="admin-grid-state">
-        No businesses to show yet.
+        {{ t('noBusinesses') }}
       </div>
       <div v-else class="admin-business-grid">
-        <div v-if="loading" class="admin-refresh-note" role="status"><span class="admin-loader"></span>Updating business list</div>
+        <div v-if="loading" class="admin-refresh-note" role="status"><span class="admin-loader"></span>{{ t('updatingBusinessList') }}</div>
         <article v-for="item in businesses" :key="item.id" class="admin-business-card">
           <div class="admin-business-card-top">
             <span class="admin-business-avatar">{{ businessInitials(item.name) }}</span>
             <span class="admin-status" :class="item.deleted_at ? 'admin-status-removed' : `admin-status-${item.status}`">
-              <span></span>{{ item.deleted_at ? 'Removed' : item.status }}
+              <span></span>{{ item.deleted_at ? t('removed') : t(item.status) }}
             </span>
           </div>
           <div class="admin-business-card-title">
-            <span>{{ item.business_type || 'Business account' }}</span>
+            <span>{{ item.business_type || t('businessAccount') }}</span>
             <h3>{{ item.name }}</h3>
           </div>
           <div class="admin-business-card-owner">
-            <span class="admin-card-label">Account owner</span>
+            <span class="admin-card-label">{{ t('accountOwner') }}</span>
             <div class="admin-owner-entry">
               <span class="admin-owner-avatar">{{ businessInitials(item.users?.[0]?.name || '?') }}</span>
               <span class="admin-owner-copy">
-                <strong>{{ item.users?.[0]?.name || 'No owner assigned' }}</strong>
-                <small>{{ item.users?.[0]?.email || 'Owner details unavailable' }}</small>
+                <strong>{{ item.users?.[0]?.name || t('noOwnerAssigned') }}</strong>
+                <small>{{ item.users?.[0]?.email || t('ownerDetailsUnavailable') }}</small>
               </span>
             </div>
           </div>
           <div class="admin-business-card-facts">
-            <span>Reporting currency</span>
+            <span>{{ t('reportingCurrency') }}</span>
             <strong>{{ item.currency }}</strong>
           </div>
           <div class="admin-row-actions">
-            <button v-if="item.deleted_at" class="admin-action admin-action-restore" type="button" @click="restoreBusiness(item)">Restore business</button>
+            <button v-if="item.deleted_at" class="admin-action admin-action-restore" type="button" @click="restoreBusiness(item)">{{ t('restoreBusiness') }}</button>
             <template v-else>
-              <button class="admin-action admin-action-status" type="button" @click="toggleStatus(item)">{{ item.status === 'active' ? 'Suspend' : 'Activate' }}</button>
-              <button class="admin-action admin-action-remove" type="button" @click="removeBusiness(item)">Remove</button>
+              <button class="admin-action admin-action-status" type="button" @click="toggleStatus(item)">{{ item.status === 'active' ? t('suspendBusiness') : t('activateBusiness') }}</button>
+              <button class="admin-action admin-action-remove" type="button" @click="removeBusiness(item)">{{ t('removeBusiness') }}</button>
             </template>
           </div>
         </article>
@@ -226,18 +244,18 @@ onMounted(loadBusinesses)
         <div class="admin-confirm-heading">
           <span class="admin-confirm-icon"><Trash2 :size="20" /></span>
           <div>
-            <p class="eyebrow">Destructive action</p>
-            <h2 id="admin-confirm-title">Remove this business?</h2>
+            <p class="eyebrow">{{ t('destructiveAction') }}</p>
+            <h2 id="admin-confirm-title">{{ t('removeBusinessTitle') }}</h2>
           </div>
         </div>
         <p class="admin-confirm-message">
-          You're about to remove <strong>{{ confirmRemoval.name }}</strong>. Its records will be preserved, and you can restore the business later.
+          {{ t('removeBusinessConfirmation', { name: confirmRemoval.name }) }}
         </p>
         <p v-if="confirmError" class="form-error admin-confirm-error" role="alert">{{ confirmError }}</p>
         <div class="admin-confirm-actions">
-          <button class="button button-secondary" type="button" :disabled="removing" @click="closeRemovalConfirmation">Cancel</button>
+          <button class="button button-secondary" type="button" :disabled="removing" @click="closeRemovalConfirmation">{{ t('cancel') }}</button>
           <button class="button admin-confirm-danger" type="button" :disabled="removing" @click="confirmRemoveBusiness">
-            {{ removing ? 'Removing…' : 'Remove business' }}
+            {{ removing ? t('removingBusiness') : t('confirmRemoveBusiness') }}
           </button>
         </div>
       </section>
@@ -245,24 +263,24 @@ onMounted(loadBusinesses)
 
     <div v-if="formOpen" class="modal-backdrop" @click.self="formOpen = false">
       <form class="modal-card" @submit.prevent="createBusiness">
-        <div class="panel-heading"><h2>Create a business</h2><button class="icon-button" type="button" aria-label="Close" @click="formOpen = false">×</button></div>
+        <div class="panel-heading"><h2>{{ t('createBusiness') }}</h2><button class="icon-button" type="button" :aria-label="t('cancel')" @click="formOpen = false">×</button></div>
         <div v-if="formError" class="form-error" role="alert">{{ formError }}</div>
         <div class="form-grid">
-          <label>Business name<input v-model="form.name" required maxlength="150"></label>
-          <label>Business type<input v-model="form.business_type" maxlength="100"></label>
-          <label>Business phone<input v-model="form.phone" maxlength="30"></label>
-          <label>Business email<input v-model="form.email" type="email" maxlength="150"></label>
-          <label>Address<input v-model="form.address" maxlength="1000"></label>
-          <label>Currency<select v-model="form.currency"><option>TZS</option><option>KES</option><option>UGX</option><option>USD</option></select></label>
-          <label>Owner name<input v-model="form.owner_name" required maxlength="150"></label>
-          <label>Owner email<input v-model="form.owner_email" required type="email" maxlength="150"></label>
-          <label>Owner phone<input v-model="form.owner_phone" maxlength="30"></label>
-          <label>Initial owner password<input v-model="form.owner_password" type="password" minlength="12" autocomplete="new-password"></label>
+          <label>{{ t('businessName') }}<input v-model="form.name" required maxlength="150"></label>
+          <label>{{ t('businessType') }}<input v-model="form.business_type" maxlength="100"></label>
+          <label>{{ t('businessPhone') }}<input v-model="form.phone" maxlength="30"></label>
+          <label>{{ t('businessEmail') }}<input v-model="form.email" type="email" maxlength="150"></label>
+          <label>{{ t('address') }}<input v-model="form.address" maxlength="1000"></label>
+          <label>{{ t('currency') }}<select v-model="form.currency"><option>TZS</option><option>KES</option><option>UGX</option><option>USD</option></select></label>
+          <label>{{ t('ownerName') }}<input v-model="form.owner_name" required maxlength="150"></label>
+          <label>{{ t('ownerEmail') }}<input v-model="form.owner_email" required type="email" maxlength="150"></label>
+          <label>{{ t('ownerPhone') }}<input v-model="form.owner_phone" maxlength="30"></label>
+          <label>{{ t('ownerPassword') }}<input v-model="form.owner_password" type="password" minlength="12" autocomplete="new-password"></label>
         </div>
-        <p class="page-subtitle">A new owner password must have at least 12 characters. Existing accounts keep their current password.</p>
+        <p class="page-subtitle">{{ t('ownerCredentialsHint') }}</p>
         <div class="heading-actions">
-          <button class="button button-secondary" type="button" @click="formOpen = false">Cancel</button>
-          <button class="button button-primary" type="submit" :disabled="saving">{{ saving ? 'Creating…' : 'Create business' }}</button>
+          <button class="button button-secondary" type="button" @click="formOpen = false">{{ t('cancel') }}</button>
+          <button class="button button-primary" type="submit" :disabled="saving">{{ saving ? t('creatingBusiness') : t('createBusiness') }}</button>
         </div>
       </form>
     </div>
