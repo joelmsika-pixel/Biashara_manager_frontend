@@ -150,7 +150,7 @@ tbody tr:hover { background: #fcfdfc; }
 .text-action:hover { background: #f0f5f1; }
 .row-actions { display: flex; align-items: center; gap: 4px; }
 .admin-page { width: min(100%, 1200px); min-height: 100vh; padding-top: 28px; padding-bottom: 42px; }
-.admin-page-heading { position: relative; display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; overflow: hidden; margin-bottom: 20px; padding: 20px 23px; border: 1px solid #e4ebe4; border-radius: 12px; background: linear-gradient(112deg, #f0f6f1, #f8f9f4 70%, #f5f3eb); }
+.admin-page-heading { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 20px; overflow: hidden; margin-bottom: 20px; padding: 20px 23px; border: 1px solid #e1e9e2; border-left: 3px solid #668b70; border-radius: 13px; background: linear-gradient(112deg, #eef5f0, #fafbf8 70%, #f4f3ec); box-shadow: 0 6px 18px rgb(23 35 31 / 4%); }
 .admin-page-heading::before, .admin-page-heading::after { position: absolute; z-index: 0; content: ""; pointer-events: none; }
 .admin-page-heading::before { top: -76px; right: 12%; width: 152px; height: 152px; border: 1px solid #e3ebe2; border-radius: 50%; box-shadow: 0 0 0 14px rgb(255 255 255 / 28%), 0 0 0 29px rgb(255 255 255 / 17%); }
 .admin-page-heading::after { right: 30%; bottom: -42px; width: 76px; height: 76px; border: 1px solid #e7e9dc; border-radius: 20px; transform: rotate(27deg); }
@@ -159,7 +159,7 @@ tbody tr:hover { background: #fcfdfc; }
 .admin-heading-copy .eyebrow { display: flex; align-items: center; gap: 7px; color: #347b55; }
 .admin-heading-copy h1 { margin-top: 2px; font-size: 26px; letter-spacing: -.65px; }
 .admin-heading-copy .page-subtitle { margin-top: 5px; font-size: 12px; }
-.admin-page-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 7px; }
+.admin-page-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 7px; padding: 5px; border: 1px solid rgb(220 230 221 / 85%); border-radius: 11px; background: rgb(255 255 255 / 72%); box-shadow: 0 3px 10px rgb(23 35 31 / 3%); }
 .admin-page-actions .button { min-height: 35px; padding-right: 10px; padding-left: 10px; font-size: 11px; white-space: nowrap; }
 .admin-page-actions .button-primary { box-shadow: 0 3px 8px rgb(23 111 76 / 13%); }
 .admin-page-actions .admin-language-button { width: 34px; height: 34px; flex: 0 0 34px; }
@@ -179,15 +179,15 @@ tbody tr:hover { background: #fcfdfc; }
 .admin-summary-card div { display: grid; gap: 3px; min-width: 0; }
 .admin-summary-card div span { color: #87948c; font-size: 10px; font-weight: 550; }
 .admin-summary-card strong { color: #24352b; font-size: 18px; font-weight: 700; line-height: 1; }
-.admin-business-panel { overflow: hidden; border-color: #e3eae4; border-radius: 11px; box-shadow: 0 5px 16px rgb(23 35 31 / 4%); }
-.admin-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 19px; border-bottom: 1px solid #e9efea; }
+.admin-business-panel { overflow: hidden; border-color: #dfe7e1; border-radius: 14px; background: #fff; box-shadow: 0 7px 22px rgb(23 35 31 / 5%); }
+.admin-panel-heading { display: flex; min-height: 68px; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 19px; border-bottom: 1px solid #e7ece8; background: linear-gradient(110deg, #fff 0%, #f6f9f6 100%); }
 .admin-panel-title { display: flex; align-items: center; gap: 10px; }
 .admin-panel-icon { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border-radius: 9px; background: #eaf5ee; color: #28774e; }
 .admin-panel-title h2 { margin: 0; color: #26372e; font-size: 13px; font-weight: 700; }
 .admin-panel-title p { margin: 3px 0 0; color: #89958e; font-size: 10px; }
-.admin-list-count { display: inline-flex; align-items: center; gap: 4px; padding: 6px 9px; border: 1px solid #e8eee9; border-radius: 20px; background: #fafcfb; color: #41574a; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.admin-list-count { display: inline-flex; align-items: center; gap: 4px; padding: 7px 10px; border: 1px solid #e2e9e3; border-radius: 20px; background: #fff; color: #41574a; font-size: 10px; font-weight: 700; white-space: nowrap; box-shadow: 0 2px 6px rgb(23 35 31 / 3%); }
 .admin-list-count span { color: #87948c; font-weight: 500; }
-.admin-business-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; gap: 13px; padding: 16px; background: #f7faf7; }
+.admin-business-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; gap: 14px; padding: 17px; background: #f5f8f5; }
 .admin-business-card { --business-accent: #fff; --business-tint: rgb(255 255 255 / 11%); --business-line: rgb(238 255 244 / 16%); --business-surface: linear-gradient(145deg, #39795b, #2f6d4e); position: relative; display: flex; min-width: 0; flex-direction: column; overflow: hidden; padding: 17px; border: 1px solid #347354; border-radius: 11px; background: var(--business-surface); box-shadow: 0 4px 12px rgb(29 76 52 / 10%); color: #fff; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
 .admin-business-card:nth-of-type(3n + 2) { --business-line: rgb(238 255 244 / 17%); --business-surface: linear-gradient(145deg, #3d805e, #326f52); }
 .admin-business-card:nth-of-type(3n) { --business-line: rgb(238 255 244 / 16%); --business-surface: linear-gradient(145deg, #367455, #2d674b); }
@@ -197,7 +197,7 @@ tbody tr:hover { background: #fcfdfc; }
 .admin-business-card:hover { transform: translateY(-2px); border-color: rgb(255 255 255 / 28%); box-shadow: 0 8px 18px rgb(29 76 52 / 16%); }
 .admin-business-card > * { position: relative; z-index: 1; }
 .admin-business-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-.admin-business-avatar { display: grid; width: 38px; height: 38px; flex: 0 0 38px; place-items: center; border: 1px solid var(--business-line); border-radius: 11px; background: var(--business-tint); color: var(--business-accent); font-size: 11px; font-weight: 750; letter-spacing: .3px; }
+.admin-business-avatar { display: grid; width: 38px; height: 38px; flex: 0 0 38px; place-items: center; border: 1px solid #e2d9cb; border-radius: 11px; background: linear-gradient(145deg, #f7f1e8, #eae2d5); box-shadow: inset 0 1px rgb(255 255 255 / 75%); color: #46564b; font-size: 11px; font-weight: 750; letter-spacing: .3px; }
 .admin-business-card-title { display: flex; min-height: 70px; align-items: center; gap: 10px; padding-top: 14px; }
 .admin-business-title-copy { display: grid; gap: 4px; min-width: 0; }
 .admin-business-title-copy > span { color: rgb(255 255 255 / 72%); font-size: 8px; font-weight: 650; letter-spacing: .6px; text-transform: uppercase; }
@@ -205,7 +205,7 @@ tbody tr:hover { background: #fcfdfc; }
 .admin-business-card-owner { margin-top: auto; padding: 11px 0; border-top: 1px solid var(--business-line); border-bottom: 1px solid var(--business-line); }
 .admin-card-label, .admin-business-card-facts > span { color: rgb(255 255 255 / 70%); font-size: 8px; font-weight: 650; letter-spacing: .5px; text-transform: uppercase; }
 .admin-owner-entry { display: flex; align-items: center; gap: 8px; min-width: 0; margin-top: 7px; }
-.admin-owner-avatar { display: grid; width: 28px; height: 28px; flex: 0 0 28px; place-items: center; border: 1px solid var(--business-line); border-radius: 50%; background: var(--business-tint); color: var(--business-accent); font-size: 9px; font-weight: 700; }
+.admin-owner-avatar { display: grid; width: 28px; height: 28px; flex: 0 0 28px; place-items: center; border: 1px solid #213b61; border-radius: 50%; background: #294a78; color: #fff; font-size: 9px; font-weight: 700; }
 .admin-owner-copy { display: grid; gap: 3px; min-width: 0; }
 .admin-owner-copy strong { overflow: hidden; color: #fff; font-size: 10px; font-weight: 650; text-overflow: ellipsis; }
 .admin-owner-copy small { overflow-wrap: anywhere; color: rgb(255 255 255 / 78%); font-size: 9px; line-height: 1.4; }
@@ -213,9 +213,8 @@ tbody tr:hover { background: #fcfdfc; }
 .admin-business-card-facts strong { color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .3px; }
 .admin-status { display: inline-flex; align-items: center; gap: 6px; min-height: 23px; padding: 0 8px; border: 1px solid transparent; border-radius: 20px; font-size: 9px; font-weight: 700; text-transform: capitalize; white-space: nowrap; }
 .admin-status > span { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
-.admin-status-active { border-color: #d7ecdf; background: #edf8f1; color: #24784a; }
 .admin-status-suspended, .admin-status-removed { border-color: #f1e2d3; background: #fff7ed; color: #a9682f; }
-.admin-business-card .admin-status-active, .admin-business-card .admin-status-suspended, .admin-business-card .admin-status-removed { border-color: rgb(255 255 255 / 26%); background: rgb(255 255 255 / 13%); color: #fff; }
+.admin-business-card .admin-status-suspended, .admin-business-card .admin-status-removed { border-color: rgb(255 255 255 / 26%); background: rgb(255 255 255 / 13%); color: #fff; }
 .admin-row-actions { display: flex; align-items: center; gap: 6px; min-width: 0; margin-top: 12px; }
 .admin-action { flex: 1; min-height: 30px; padding: 0 8px; border: 1px solid #e3eae5; border-radius: 6px; background: #fff; color: #52635a; cursor: pointer; font-size: 9px; font-weight: 650; transition: background .15s ease, border-color .15s ease, color .15s ease; white-space: nowrap; }
 .admin-business-card .admin-action { border-color: rgb(255 255 255 / 27%); background: rgb(255 255 255 / 11%); color: #fff; }
@@ -418,7 +417,7 @@ tbody tr:hover { background: #fcfdfc; }
   .admin-summary-card div span { font-size: 9px; line-height: 1.15; }
   .admin-summary-card strong { font-size: 16px; }
   .admin-business-panel { display: flex; min-height: 0; flex: 1 1 auto; flex-direction: column; }
-  .admin-panel-heading { flex: 0 0 auto; gap: 6px; padding: 8px 10px; }
+  .admin-panel-heading { min-height: 0; flex: 0 0 auto; gap: 6px; padding: 8px 10px; }
   .admin-panel-icon { width: 26px; height: 26px; flex-basis: 26px; border-radius: 7px; }
   .admin-panel-icon svg { width: 14px; height: 14px; }
   .admin-panel-title { gap: 7px; }

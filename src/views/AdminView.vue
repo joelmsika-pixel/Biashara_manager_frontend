@@ -200,13 +200,18 @@ onMounted(loadBusinesses)
       <div v-else class="admin-business-grid">
         <div v-if="loading" class="admin-refresh-note" role="status"><span class="admin-loader"></span>{{ t('updatingBusinessList') }}</div>
         <article v-for="item in businesses" :key="item.id" class="admin-business-card">
-          <div class="admin-business-card-top">
-            <span class="admin-status" :class="item.deleted_at ? 'admin-status-removed' : `admin-status-${item.status}`">
+          <div v-if="item.deleted_at || item.status !== 'active'" class="admin-business-card-top">
+            <span
+              class="admin-status"
+              :class="item.deleted_at ? 'admin-status-removed' : `admin-status-${item.status}`"
+              :aria-label="item.deleted_at ? t('removed') : t(item.status)"
+              role="img"
+            >
               <span></span>{{ item.deleted_at ? t('removed') : t(item.status) }}
             </span>
           </div>
           <div class="admin-business-card-title">
-            <span class="admin-business-avatar">{{ businessInitials(item.name) }}</span>
+            <span class="admin-business-avatar" aria-hidden="true">{{ businessInitials(item.name) }}</span>
             <span class="admin-business-title-copy">
               <span>{{ item.business_type || t('businessAccount') }}</span>
               <h3>{{ item.name }}</h3>
@@ -215,7 +220,7 @@ onMounted(loadBusinesses)
           <div class="admin-business-card-owner">
             <span class="admin-card-label">{{ t('accountOwner') }}</span>
             <div class="admin-owner-entry">
-              <span class="admin-owner-avatar">{{ businessInitials(item.users?.[0]?.name || '?') }}</span>
+              <span class="admin-owner-avatar" aria-hidden="true">{{ businessInitials(item.users?.[0]?.name || item.users?.[0]?.email || '?') }}</span>
               <span class="admin-owner-copy">
                 <strong>{{ item.users?.[0]?.name || t('noOwnerAssigned') }}</strong>
                 <small>{{ item.users?.[0]?.email || t('ownerDetailsUnavailable') }}</small>
