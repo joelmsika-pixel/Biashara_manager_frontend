@@ -376,31 +376,69 @@ tbody tr:hover { background: #fcfdfc; }
   .language-switch { top: 12px; right: 12px; }
 }
 @media (max-width: 600px) {
-  .admin-page { padding-top: 17px; }
-  .admin-page-heading { gap: 15px; padding: 15px 14px; }
-  .admin-heading-copy h1 { font-size: 23px; }
-  .admin-business-grid { grid-template-columns: 1fr; gap: 9px; padding: 10px; }
-  .admin-business-card { padding: 14px; }
+  body:has(.admin-page) { overflow: hidden; }
+  .admin-page { display: flex; width: 100%; height: 100vh; height: 100svh; min-height: 0; flex-direction: column; gap: 6px; overflow: hidden; padding: 8px 10px; }
+  .admin-page-heading { flex: 0 0 auto; gap: 6px; margin: 0; padding: 9px 11px; border-radius: 9px; }
+  .admin-page-heading::before { top: -37px; width: 76px; height: 76px; box-shadow: 0 0 0 9px rgb(255 255 255 / 28%), 0 0 0 18px rgb(255 255 255 / 17%); }
+  .admin-page-heading::after { bottom: -27px; width: 45px; height: 45px; border-radius: 13px; }
+  .admin-heading-copy .eyebrow { gap: 4px; font-size: 8px; }
+  .admin-heading-copy .eyebrow svg { width: 11px; height: 11px; }
+  .admin-heading-copy h1 { margin-top: 0; font-size: 20px; }
+  .admin-heading-copy .page-subtitle { margin-top: 2px; font-size: 9px; }
+  .admin-page-actions { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+  .admin-page-actions .button { min-height: 25px; padding: 2px 6px; font-size: 9px; }
+  .admin-page-actions .button-primary { grid-column: 1; grid-row: 1; }
+  .admin-page-actions .admin-sign-out { grid-column: 2; grid-row: 1; }
+  .admin-page-actions .button:first-child { grid-column: 1; grid-row: 2; }
+  .admin-page-actions .button:nth-child(2) { grid-column: 2; grid-row: 2; }
+  .admin-sign-out { margin-left: 0; }
+  .admin-summary { flex: 0 0 auto; gap: 5px; margin: 0; }
+  .admin-summary-card { min-height: 43px; gap: 5px; padding: 5px 7px; border-radius: 7px; }
+  .admin-summary-card::after { top: -24px; right: -15px; width: 48px; height: 48px; }
+  .admin-summary-icon { width: 22px; height: 22px; flex-basis: 22px; border-radius: 6px; }
+  .admin-summary-icon svg { width: 12px; height: 12px; }
+  .admin-summary-card div { gap: 2px; }
+  .admin-summary-card div span { font-size: 7px; line-height: 1.15; }
+  .admin-summary-card strong { font-size: 14px; }
+  .admin-business-panel { display: flex; min-height: 0; flex: 1 1 auto; flex-direction: column; }
+  .admin-panel-heading { flex: 0 0 auto; gap: 6px; padding: 8px 10px; }
+  .admin-panel-icon { width: 26px; height: 26px; flex-basis: 26px; border-radius: 7px; }
+  .admin-panel-icon svg { width: 14px; height: 14px; }
+  .admin-panel-title { gap: 7px; }
+  .admin-panel-title h2 { font-size: 11px; }
+  .admin-panel-title p { display: none; }
+  .admin-list-count { gap: 3px; padding: 4px 6px; font-size: 8px; }
+  .admin-business-grid { display: grid; min-height: 0; flex: 1 1 auto; grid-template-columns: 1fr; grid-auto-rows: minmax(88px, 104px); align-content: center; gap: 5px; overflow: hidden; padding: 7px; }
+  .admin-refresh-note { display: none; }
+  .admin-business-card { display: grid; min-height: 0; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto auto; align-content: center; gap: 2px 7px; padding: 7px 9px; border-radius: 8px; }
+  .admin-business-card::before { top: -28px; right: -28px; width: 56px; height: 56px; }
+  .admin-business-card::after { top: 26px; right: 12px; width: 5px; height: 5px; }
+  .admin-business-card-top { grid-column: 2; grid-row: 1; align-items: center; }
+  .admin-business-card-top .admin-business-avatar { display: none; }
+  .admin-business-card-title { min-height: 0; grid-column: 1; grid-row: 1; overflow: hidden; padding: 0; }
+  .admin-business-card-title > span { display: none; }
+  .admin-business-card-title h3 { overflow: hidden; margin: 0; font-size: 11px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-business-card-owner { grid-column: 1; grid-row: 2; min-width: 0; margin: 0; padding: 3px 0 1px; border: 0; }
+  .admin-card-label { display: none; }
+  .admin-owner-entry { gap: 5px; margin: 0; }
+  .admin-owner-avatar { width: 20px; height: 20px; flex-basis: 20px; font-size: 7px; }
+  .admin-owner-copy { gap: 1px; }
+  .admin-owner-copy strong { font-size: 8px; }
+  .admin-owner-copy small { overflow: hidden; font-size: 7px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-business-card-facts { grid-column: 2; grid-row: 2; flex-direction: column; align-items: flex-end; justify-content: center; gap: 2px; padding: 0; }
+  .admin-business-card-facts > span { display: none; }
+  .admin-business-card-facts strong { font-size: 8px; }
+  .admin-status { min-height: 18px; gap: 4px; padding: 0 6px; font-size: 7px; }
+  .admin-status > span { width: 4px; height: 4px; }
+  .admin-row-actions { grid-column: 1 / -1; grid-row: 3; gap: 4px; margin-top: 1px; }
+  .admin-action { min-height: 23px; padding: 0 7px; font-size: 8px; }
+  .admin-grid-state { min-height: 0; flex: 1 1 auto; padding: 10px; font-size: 10px; }
   .admin-page-heading::before { right: -25px; }
   .admin-page-heading::after { right: 12%; }
 }
 @media (max-width: 430px) {
   .toast-host { top: max(12px, env(safe-area-inset-top)); right: 12px; width: calc(100vw - 24px); }
   .breadcrumbs { gap: 6px; font-size: 10px; }
-  .admin-page { padding-right: 14px; padding-left: 14px; }
-  .admin-page-actions { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .admin-page-actions .button { justify-content: center; width: 100%; }
-  .admin-page-actions .button-primary { grid-column: 1 / -1; grid-row: 1; }
-  .admin-sign-out { margin-left: 0; }
-  .admin-summary { gap: 7px; }
-  .admin-summary-card { min-height: 64px; gap: 7px; padding: 8px; }
-  .admin-summary-icon { width: 27px; height: 27px; flex-basis: 27px; border-radius: 8px; }
-  .admin-summary-icon svg { width: 13px; height: 13px; }
-  .admin-summary-card div span { font-size: 8px; line-height: 1.3; }
-  .admin-summary-card strong { font-size: 16px; }
-  .admin-panel-heading { padding: 12px; }
-  .admin-panel-title p { max-width: 170px; line-height: 1.4; }
-  .admin-list-count { padding: 5px 7px; font-size: 9px; }
   .topbar-user .avatar { width: 27px; height: 27px; flex-basis: 27px; }
   .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .page-heading { gap: 8px; }
