@@ -1,7 +1,7 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { BriefcaseBusiness, LogOut, Plus, RefreshCw, Shield } from '@lucide/vue'
+import { BriefcaseBusiness, LogOut, Plus, RefreshCw, Shield, Trash2 } from '@lucide/vue'
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
 
@@ -15,6 +15,17 @@ const error = ref('')
 const formOpen = ref(false)
 const formError = ref('')
 const form = ref({})
+const confirmRemoval = ref(null)
+const confirmError = ref('')
+const removing = ref(false)
+const confirmDialog = ref(null)
+const removalTrigger = ref(null)
+const activeCount = computed(() => businesses.value.filter((item) => !item.deleted_at && item.status === 'active').length)
+const inactiveCount = computed(() => businesses.value.length - activeCount.value)
+
+function businessInitials(name = '') {
+  return String(name).trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
+}
 
 async function loadBusinesses() {
   loading.value = true
@@ -62,14 +73,33 @@ async function toggleStatus(item) {
   }
 }
 
-async function removeBusiness(item) {
-  if (!window.confirm(`Remove ${item.name}? Its records will be preserved.`)) return
-  error.value = ''
+function removeBusiness(item) {
+  removalTrigger.value = document.activeElement
+  confirmError.value = ''
+  confirmRemoval.value = item
+  nextTick(() => confirmDialog.value?.focus())
+}
+
+function closeRemovalConfirmation() {
+  if (removing.value) return
+  confirmRemoval.value = null
+  confirmError.value = ''
+  nextTick(() => removalTrigger.value?.focus())
+}
+
+async function confirmRemoveBusiness() {
+  if (!confirmRemoval.value) return
+  removing.value = true
+  confirmError.value = ''
   try {
-    await api.delete(`/admin/businesses/${item.id}`)
+    await api.delete(`/admin/businesses/${confirmRemoval.value.id}`)
+    confirmRemoval.value = null
+    removalTrigger.value = null
     await loadBusinesses()
   } catch (requestError) {
-    error.value = requestError.response?.data?.message || 'Unable to remove the business.'
+    confirmError.value = requestError.response?.data?.message || 'Unable to remove the business.'
+  } finally {
+    removing.value = false
   }
 }
 
@@ -95,50 +125,123 @@ onMounted(loadBusinesses)
 </script>
 
 <template>
-  <main class="content" style="max-width: 1200px; min-height: 100vh">
-    <header class="page-heading">
-      <div>
+  <main class="content admin-page">
+    <header class="admin-page-heading">
+      <div class="admin-heading-copy">
         <p class="eyebrow"><Shield :size="14" /> Platform administration</p>
         <h1>Businesses</h1>
         <p class="page-subtitle">Manage business accounts and their owners.</p>
       </div>
-      <div class="heading-actions">
-        <button class="button button-secondary" @click="includeDeleted = !includeDeleted; loadBusinesses()">{{ includeDeleted ? 'Hide removed' : 'Show removed' }}</button>
-        <button class="button button-secondary" :disabled="loading" @click="loadBusinesses"><RefreshCw :size="16" /> Refresh</button>
-        <button class="button button-primary" @click="openCreate"><Plus :size="16" /> Create business</button>
-        <button class="button button-secondary" @click="logout"><LogOut :size="16" /> Sign out</button>
+      <div class="admin-page-actions">
+        <button class="button button-secondary" type="button" @click="includeDeleted = !includeDeleted; loadBusinesses()">
+          {{ includeDeleted ? 'Hide removed' : 'Show removed' }}
+        </button>
+        <button class="button button-secondary" type="button" :disabled="loading" @click="loadBusinesses">
+          <RefreshCw :size="16" :class="{ 'admin-refreshing': loading }" /> Refresh
+        </button>
+        <button class="button button-primary" type="button" @click="openCreate"><Plus :size="16" /> Create business</button>
+        <button class="button button-secondary admin-sign-out" type="button" @click="logout"><LogOut :size="16" /> Sign out</button>
       </div>
     </header>
 
     <div v-if="error" class="notice-banner" role="alert">{{ error }}</div>
-    <section class="panel-card">
-      <div class="panel-heading">
-        <div class="card-title-row"><span class="metric-icon green"><BriefcaseBusiness :size="17" /></span><strong>All businesses</strong></div>
-        <span>{{ businesses.length }} listed</span>
+    <section class="admin-summary" aria-label="Business summary">
+      <article class="admin-summary-card">
+        <span class="admin-summary-icon"><BriefcaseBusiness :size="18" /></span>
+        <div><span>Businesses listed</span><strong>{{ businesses.length }}</strong></div>
+      </article>
+      <article class="admin-summary-card admin-summary-active">
+        <span class="admin-summary-icon"><Shield :size="18" /></span>
+        <div><span>Active</span><strong>{{ activeCount }}</strong></div>
+      </article>
+      <article class="admin-summary-card admin-summary-inactive">
+        <span class="admin-summary-icon"><RefreshCw :size="18" /></span>
+        <div><span>Suspended or removed</span><strong>{{ inactiveCount }}</strong></div>
+      </article>
+    </section>
+
+    <section class="panel-card admin-business-panel">
+      <div class="admin-panel-heading">
+        <div class="admin-panel-title">
+          <span class="admin-panel-icon"><BriefcaseBusiness :size="18" /></span>
+          <div>
+            <h2>All businesses</h2>
+            <p>Manage account status and business owners.</p>
+          </div>
+        </div>
+        <span class="admin-list-count">{{ businesses.length }} <span>listed</span></span>
       </div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead><tr><th>Business</th><th>Owner</th><th>Currency</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody>
-            <tr v-if="loading"><td colspan="5">Loading businesses…</td></tr>
-            <tr v-else-if="!businesses.length"><td colspan="5">No businesses yet.</td></tr>
-            <tr v-for="item in businesses" :key="item.id">
-              <td><strong>{{ item.name }}</strong><small>{{ item.business_type || '—' }}</small></td>
-              <td>{{ item.users?.[0]?.name || '—' }}<small>{{ item.users?.[0]?.email || '' }}</small></td>
-              <td>{{ item.currency }}</td>
-              <td><span class="status-badge" :class="item.deleted_at ? 'suspended' : item.status">{{ item.deleted_at ? 'Removed' : item.status }}</span></td>
-              <td>
-                <button v-if="item.deleted_at" class="button button-secondary" @click="restoreBusiness(item)">Restore</button>
-                <template v-else>
-                  <button class="button button-secondary" @click="toggleStatus(item)">{{ item.status === 'active' ? 'Suspend' : 'Activate' }}</button>
-                  <button class="button button-secondary" @click="removeBusiness(item)">Remove</button>
-                </template>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-if="loading && !businesses.length" class="admin-grid-state" role="status">
+        <span class="admin-loader"></span>Loading businesses…
+      </div>
+      <div v-else-if="!loading && !businesses.length" class="admin-grid-state">
+        No businesses to show yet.
+      </div>
+      <div v-else class="admin-business-grid">
+        <div v-if="loading" class="admin-refresh-note" role="status"><span class="admin-loader"></span>Updating business list</div>
+        <article v-for="item in businesses" :key="item.id" class="admin-business-card">
+          <div class="admin-business-card-top">
+            <span class="admin-business-avatar">{{ businessInitials(item.name) }}</span>
+            <span class="admin-status" :class="item.deleted_at ? 'admin-status-removed' : `admin-status-${item.status}`">
+              <span></span>{{ item.deleted_at ? 'Removed' : item.status }}
+            </span>
+          </div>
+          <div class="admin-business-card-title">
+            <span>{{ item.business_type || 'Business account' }}</span>
+            <h3>{{ item.name }}</h3>
+          </div>
+          <div class="admin-business-card-owner">
+            <span class="admin-card-label">Account owner</span>
+            <div class="admin-owner-entry">
+              <span class="admin-owner-avatar">{{ businessInitials(item.users?.[0]?.name || '?') }}</span>
+              <span class="admin-owner-copy">
+                <strong>{{ item.users?.[0]?.name || 'No owner assigned' }}</strong>
+                <small>{{ item.users?.[0]?.email || 'Owner details unavailable' }}</small>
+              </span>
+            </div>
+          </div>
+          <div class="admin-business-card-facts">
+            <span>Reporting currency</span>
+            <strong>{{ item.currency }}</strong>
+          </div>
+          <div class="admin-row-actions">
+            <button v-if="item.deleted_at" class="admin-action admin-action-restore" type="button" @click="restoreBusiness(item)">Restore business</button>
+            <template v-else>
+              <button class="admin-action admin-action-status" type="button" @click="toggleStatus(item)">{{ item.status === 'active' ? 'Suspend' : 'Activate' }}</button>
+              <button class="admin-action admin-action-remove" type="button" @click="removeBusiness(item)">Remove</button>
+            </template>
+          </div>
+        </article>
       </div>
     </section>
+
+    <div
+      v-if="confirmRemoval"
+      class="modal-backdrop"
+      tabindex="-1"
+      @click.self="closeRemovalConfirmation"
+      @keydown.esc="closeRemovalConfirmation"
+    >
+      <section ref="confirmDialog" class="modal-card admin-confirm-card" role="dialog" aria-modal="true" aria-labelledby="admin-confirm-title" tabindex="-1">
+        <div class="admin-confirm-heading">
+          <span class="admin-confirm-icon"><Trash2 :size="20" /></span>
+          <div>
+            <p class="eyebrow">Destructive action</p>
+            <h2 id="admin-confirm-title">Remove this business?</h2>
+          </div>
+        </div>
+        <p class="admin-confirm-message">
+          You're about to remove <strong>{{ confirmRemoval.name }}</strong>. Its records will be preserved, and you can restore the business later.
+        </p>
+        <p v-if="confirmError" class="form-error admin-confirm-error" role="alert">{{ confirmError }}</p>
+        <div class="admin-confirm-actions">
+          <button class="button button-secondary" type="button" :disabled="removing" @click="closeRemovalConfirmation">Cancel</button>
+          <button class="button admin-confirm-danger" type="button" :disabled="removing" @click="confirmRemoveBusiness">
+            {{ removing ? 'Removing…' : 'Remove business' }}
+          </button>
+        </div>
+      </section>
+    </div>
 
     <div v-if="formOpen" class="modal-backdrop" @click.self="formOpen = false">
       <form class="modal-card" @submit.prevent="createBusiness">

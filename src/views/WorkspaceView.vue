@@ -9,6 +9,9 @@ import {
 } from '@lucide/vue'
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
+import bizikuaLogo from '../assets/Bizikua Business Manager Logo.png'
+import ukFlag from '../assets/uk-flag.svg'
+import tanzaniaFlag from '../assets/tanzania-flag.svg'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -551,8 +554,7 @@ onMounted(async () => {
     <div v-if="mobileMenuOpen" class="mobile-overlay" @click="mobileMenuOpen = false"></div>
     <aside class="sidebar" :class="{ 'sidebar-open': mobileMenuOpen }">
       <div class="sidebar-brand">
-        <div class="brand-mark small"><BriefcaseBusiness :size="19" /></div>
-        <div><strong>{{ t('brand') }}</strong><span>{{ t('businessRecords') }}</span></div>
+        <img class="sidebar-logo" :src="bizikuaLogo" alt="Bizikua Business Manager" />
         <button class="icon-button mobile-close" :aria-label="t('cancel')" @click="mobileMenuOpen = false"><X :size="19" /></button>
       </div>
       <div v-if="businesses.length" class="business-switcher">
@@ -580,7 +582,15 @@ onMounted(async () => {
         <button class="icon-button mobile-menu" :aria-label="t('brand')" @click="mobileMenuOpen = true"><Menu :size="20" /></button>
         <div class="breadcrumbs"><span>{{ t('brand') }}</span><span class="crumb-separator">/</span><strong>{{ activeTitle }}</strong></div>
         <div class="topbar-actions">
-          <button class="language-button" type="button" @click="switchLanguage">{{ locale === 'en' ? 'EN' : 'SW' }} <ChevronDown :size="14" /></button>
+          <button
+            class="language-button"
+            type="button"
+            :aria-label="`${t('language')}: ${locale === 'en' ? t('english') : t('swahili')}`"
+            :title="locale === 'en' ? t('english') : t('swahili')"
+            @click="switchLanguage"
+          >
+            <img class="language-flag" :src="locale === 'en' ? ukFlag : tanzaniaFlag" alt="" />
+          </button>
           <div class="topbar-divider"></div>
           <div class="topbar-user"><div class="avatar tiny">{{ auth.user?.name?.slice(0, 1)?.toUpperCase() || 'U' }}</div><span>{{ auth.user?.name }}</span></div>
         </div>
@@ -664,9 +674,8 @@ onMounted(async () => {
     <section class="print-report" aria-hidden="true">
       <header class="print-header">
         <div class="print-brand">
-          <div class="print-brand-mark"><BriefcaseBusiness :size="22" /></div>
+          <img class="print-brand-logo" :src="bizikuaLogo" alt="Bizikua Business Manager" />
           <div>
-            <p class="print-kicker">{{ t('brand') }}</p>
             <h1>{{ business?.name || t('businessName') }}</h1>
             <p v-if="business?.business_type" class="print-business-type">{{ business.business_type }}</p>
           </div>
