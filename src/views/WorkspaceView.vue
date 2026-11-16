@@ -1,7 +1,7 @@
 frontend<script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   Activity, ArrowDownLeft, ArrowUpRight, BriefcaseBusiness, ChevronDown, CircleDollarSign,
   ClipboardList, FileBarChart, LayoutDashboard, LogOut, Mail, Menu, Package, Plus, Search, Shield,
@@ -12,11 +12,12 @@ import { useAuthStore } from '../stores/auth'
 import ProductsPanel from '../components/ProductsPanel.vue'
 
 const { t, locale } = useI18n()
+const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const businesses = ref(auth.user?.businesses || [])
-const selectedBusinessId = ref(localStorage.getItem('business_id') || '')
-const section = ref('sales')
+const selectedBusinessId = ref(String(route.params.businessId || localStorage.getItem('business_id') || ''))
+const section = ref(String(route.params.section || 'sales'))
 const records = ref([])
 const dashboard = ref({})
 const pagination = ref(null)
@@ -85,6 +86,18 @@ function can(permission) {
   if (member.role === 'employee' && permission === 'products.view' && member.permissions?.includes('sales.create')) return true
   if (member.role === 'owner') return true
   return Array.isArray(member.permissions) && member.permissions.includes(permission)
+}
+
+function defaultSection() {
+  if (isOwner.value) return 'dashboard'
+  if (can('sales.view')) return 'sales'
+  return nav.value.find((item) => item.key !== 'logout' && can(item.permission))?.key || 'sales'
+}
+
+function resolveSection(key) {
+  if (key === 'dashboard' && isOwner.value) return key
+  const entry = nav.value.find((item) => item.key === key && item.key !== 'logout')
+  return entry && can(entry.permission) ? key : defaultSection()
 }
 
 const titles = {
@@ -215,6 +228,16 @@ function routeFor(key = section.value) {
   return `${businessUrl.value}/${key}`
 }
 
+function workspacePath(businessId = selectedBusinessId.value, key = section.value) {
+  return businessId ? `/businesses/${encodeURIComponent(businessId)}/${encodeURIComponent(key)}` : '/'
+}
+
+function syncWorkspaceRoute(replace = false) {
+  const path = workspacePath()
+  if (route.path === path) return
+  return replace ? router.replace(path) : router.push(path)
+}
+
 async function load() {
   const requestId = ++loadRequestId
   if (!auth.user) {
@@ -290,7 +313,10 @@ async function load() {
 async function loadBusinesses() {
   if (!auth.user) return
   businesses.value = auth.user.businesses || []
-  if (!businesses.value.some((item) => String(item.id) === String(selectedBusinessId.value))) {
+  const requestedBusinessId = String(route.params.businessId || selectedBusinessId.value)
+  if (businesses.value.some((item) => String(item.id) === requestedBusinessId)) {
+    selectedBusinessId.value = requestedBusinessId
+  } else {
     selectedBusinessId.value = String(businesses.value[0]?.id || '')
   }
   if (selectedBusinessId.value) localStorage.setItem('business_id', selectedBusinessId.value)
@@ -536,7 +562,7 @@ function selectSection(key) {
     return
   }
   const needsReload = section.value === key && !query.value && page.value === 1
-  section.value = key
+  section.value = resolveSection(key)
   query.value = ''
   page.value = 1
   mobileMenuOpen.value = false
@@ -547,23 +573,38 @@ watch([section, selectedBusinessId, query, page, dateFrom, dateTo], () => {
   if (selectedBusinessId.value) localStorage.setItem('business_id', selectedBusinessId.value)
   else localStorage.removeItem('business_id')
   if (!workspaceReady) return
-  if (!isOwner.value && ['dashboard', 'reports', 'employees'].includes(section.value)) {
-    section.value = 'sales'
+  const permittedSection = resolveSection(section.value)
+  if (section.value !== permittedSection) {
+    section.value = permittedSection
     page.value = 1
     query.value = ''
     return
   }
+  syncWorkspaceRoute()
   load()
 })
 watch(query, () => { page.value = 1 })
+watch(
+  () => [route.params.businessId, route.params.section],
+  ([businessId, routeSection]) => {
+    if (!workspaceReady) return
+    const requestedBusinessId = String(businessId || '')
+    if (businesses.value.some((item) => String(item.id) === requestedBusinessId)) {
+      selectedBusinessId.value = requestedBusinessId
+    }
+    section.value = resolveSection(String(routeSection || ''))
+    syncWorkspaceRoute(true)
+  },
+)
 
 onMounted(async () => {
   try {
     await loadBusinesses()
-    if (isOwner.value) section.value = 'dashboard'
+    section.value = resolveSection(String(route.params.section || ''))
     changeReportPeriod('month')
     await nextTick()
     workspaceReady = true
+    await syncWorkspaceRoute(true)
     await load()
   } catch (requestError) {
     error.value = requestError.response?.data?.message || t('notConfigured')

@@ -7,6 +7,7 @@ const router = createRouter({
     { path: '/login', name: 'login', component: () => import('../views/LoginView.vue') },
     { path: '/reset-password', name: 'reset-password', component: () => import('../views/LoginView.vue') },
     { path: '/admin', name: 'admin', component: () => import('../views/AdminView.vue'), meta: { requiresAuth: true, requiresAdmin: true } },
+    { path: '/businesses/:businessId/:section?', name: 'workspace-business', component: () => import('../views/WorkspaceView.vue'), meta: { requiresAuth: true } },
     { path: '/', name: 'home', component: () => import('../views/WorkspaceView.vue'), meta: { requiresAuth: true } },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
