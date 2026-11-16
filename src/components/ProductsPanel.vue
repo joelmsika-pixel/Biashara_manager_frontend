@@ -113,7 +113,7 @@ async function loadProducts() {
         category: categoryFilter.value || undefined,
         stock_status: stockFilter.value,
         page: page.value,
-        per_page: 12,
+        per_page: 10,
       },
     })
     if (currentRequest !== requestId) return

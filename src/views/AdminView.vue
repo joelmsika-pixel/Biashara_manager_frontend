@@ -8,6 +8,8 @@ import { useAuthStore } from '../stores/auth'
 const auth = useAuthStore()
 const router = useRouter()
 const businesses = ref([])
+const page = ref(1)
+const pagination = ref(null)
 const loading = ref(false)
 const saving = ref(false)
 const includeDeleted = ref(false)
@@ -18,18 +20,46 @@ const formError = ref('')
 const form = ref({})
 const removeBusinessTarget = ref(null)
 const removeBusinessData = ref(false)
+let businessLoadRequestId = 0
 
 async function loadBusinesses() {
+  const requestId = ++businessLoadRequestId
   loading.value = true
   error.value = ''
   try {
-    const { data } = await api.get('/admin/businesses', { params: { per_page: 100, include_deleted: includeDeleted.value } })
+    const { data } = await api.get('/admin/businesses', { params: { page: page.value, per_page: 10, include_deleted: includeDeleted.value } })
+    if (requestId !== businessLoadRequestId) return
+    const lastPage = Math.max(1, Number(data.last_page) || 1)
+    if (page.value > lastPage) {
+      page.value = lastPage
+      await loadBusinesses()
+      return
+    }
     businesses.value = data.data || []
+    pagination.value = {
+      current_page: Number(data.current_page) || page.value,
+      last_page: lastPage,
+      total: Number(data.total) || 0,
+    }
   } catch (requestError) {
-    error.value = requestError.response?.data?.message || 'Unable to load businesses.'
+    if (requestId === businessLoadRequestId) {
+      error.value = requestError.response?.data?.message || 'Unable to load businesses.'
+    }
   } finally {
-    loading.value = false
+    if (requestId === businessLoadRequestId) loading.value = false
   }
+}
+
+function changePage(nextPage) {
+  if (loading.value || nextPage < 1 || nextPage > (pagination.value?.last_page || 1)) return
+  page.value = nextPage
+  loadBusinesses()
+}
+
+function toggleDeleted() {
+  includeDeleted.value = !includeDeleted.value
+  page.value = 1
+  loadBusinesses()
 }
 
 function openCreate() {
@@ -48,6 +78,7 @@ async function createBusiness() {
   try {
     await api.post('/admin/businesses', form.value)
     formOpen.value = false
+    page.value = 1
     await loadBusinesses()
   } catch (requestError) {
     formError.value = requestError.response?.data?.message
@@ -131,7 +162,7 @@ onMounted(async () => {
         <p class="page-subtitle">Manage business accounts and their owners.</p>
       </div>
       <div class="heading-actions">
-        <button class="button button-secondary" @click="includeDeleted = !includeDeleted; loadBusinesses()">{{ includeDeleted ? 'Hide removed' : 'Show removed' }}</button>
+        <button class="button button-secondary" :disabled="loading" @click="toggleDeleted">{{ includeDeleted ? 'Hide removed' : 'Show removed' }}</button>
         <button class="button button-secondary" :disabled="loading" @click="loadBusinesses"><RefreshCw :size="16" /> Refresh</button>
         <button class="button button-primary" @click="openCreate"><Plus :size="16" /> Create business</button>
         <button class="button button-secondary" @click="logout"><LogOut :size="16" /> Sign out</button>
@@ -143,7 +174,7 @@ onMounted(async () => {
     <section class="panel-card">
       <div class="panel-heading">
         <div class="card-title-row"><span class="metric-icon green"><BriefcaseBusiness :size="17" /></span><strong>All businesses</strong></div>
-        <span>{{ businesses.length }} listed</span>
+        <span>{{ pagination ? pagination.total : businesses.length }} listed</span>
       </div>
       <div class="table-wrap">
         <table class="data-table">
@@ -166,6 +197,13 @@ onMounted(async () => {
             </tr>
           </tbody>
         </table>
+      </div>
+      <div v-if="pagination && pagination.last_page > 1" class="pagination">
+        <span>Page {{ pagination.current_page }} of {{ pagination.last_page }}</span>
+        <div>
+          <button class="button button-secondary" :disabled="page <= 1 || loading" @click="changePage(page - 1)">Previous</button>
+          <button class="button button-secondary" :disabled="page >= pagination.last_page || loading" @click="changePage(page + 1)">Next</button>
+        </div>
       </div>
     </section>
 

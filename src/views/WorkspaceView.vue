@@ -287,7 +287,7 @@ async function load() {
         to: dateTo.value || undefined,
         search: query.value || undefined,
         page: page.value,
-        per_page: 15,
+        per_page: 10,
       } })
       if (requestId !== loadRequestId) return
       dashboard.value = data
@@ -295,7 +295,7 @@ async function load() {
       pagination.value = data.records?.meta || data.records || null
       return
     }
-    const params = { page: page.value, per_page: 15, search: query.value || undefined }
+    const params = { page: page.value, per_page: 10, search: query.value || undefined }
     const { data } = await api.get(routeFor(), { params })
     if (requestId !== loadRequestId) return
     records.value = data.data || (Array.isArray(data) ? data : [])
@@ -707,6 +707,13 @@ onMounted(async () => {
           </article>
           <div v-else-if="!loading && !error" class="state-message"><Mail :size="25" /><span>{{ t('emptyInbox') }}</span></div>
         </section>
+        <div v-if="section === 'inbox' && pagination && pagination.last_page > 1" class="pagination">
+          <span>{{ t('page') }} {{ pagination.current_page }} {{ t('of') }} {{ pagination.last_page }}</span>
+          <div>
+            <button class="button button-secondary" :disabled="page <= 1 || loading" @click="page--">{{ t('previous') }}</button>
+            <button class="button button-secondary" :disabled="page >= pagination.last_page || loading" @click="page++">{{ t('next') }}</button>
+          </div>
+        </div>
 
         <ProductsPanel
           v-if="section === 'products' && business"
@@ -733,7 +740,7 @@ onMounted(async () => {
             <button v-else-if="section === 'sales'" class="text-action" @click="showSale(row)">{{ t('viewDetails') }}</button>
             <span v-else>—</span></td></tr></tbody></table></div>
           <div v-else-if="!loading && !error" class="state-message"><ClipboardList :size="25" /><span>{{ t('empty') }}</span></div>
-          <div v-if="pagination && pagination.last_page > 1" class="pagination"><span>{{ t('page') }} {{ pagination.current_page }} {{ t('of') }} {{ pagination.last_page }}</span><div><button class="button button-secondary" :disabled="page <= 1" @click="page--">{{ t('previous') }}</button><button class="button button-secondary" :disabled="page >= pagination.last_page" @click="page++">{{ t('next') }}</button></div></div>
+          <div v-if="pagination && pagination.last_page > 1" class="pagination"><span>{{ t('page') }} {{ pagination.current_page }} {{ t('of') }} {{ pagination.last_page }}</span><div><button class="button button-secondary" :disabled="page <= 1 || loading" @click="page--">{{ t('previous') }}</button><button class="button button-secondary" :disabled="page >= pagination.last_page || loading" @click="page++">{{ t('next') }}</button></div></div>
         </section>
         <p v-if="section === 'dashboard' && isOwner" class="profit-disclaimer">{{ t('noProfit') }}</p>
       </div>
