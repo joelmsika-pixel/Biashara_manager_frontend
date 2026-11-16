@@ -81,11 +81,14 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout() {
-    try {
-      if (localStorage.getItem('access_token')) await api.post('/logout')
-    } finally {
-      clearSession()
-      initialized = true
+    const token = localStorage.getItem('access_token')
+    const refreshToken = localStorage.getItem('refresh_token')
+    clearSession()
+    initialized = true
+    if (token || refreshToken) {
+      await api.post('/logout', { refresh_token: refreshToken }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
     }
   }
 
