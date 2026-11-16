@@ -671,6 +671,7 @@ onMounted(async () => {
           :can-create="can('products.create')"
           :can-edit="can('products.edit')"
           :can-delete="can('products.delete')"
+          :can-sell="can('sales.create')"
         />
 
         <section v-if="section !== 'dashboard' && section !== 'inbox' && section !== 'products'" class="panel-card">

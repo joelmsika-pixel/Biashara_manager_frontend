@@ -10,6 +10,7 @@ const props = defineProps({
   canCreate: { type: Boolean, default: false },
   canEdit: { type: Boolean, default: false },
   canDelete: { type: Boolean, default: false },
+  canSell: { type: Boolean, default: false },
 })
 
 const { t } = useI18n()
@@ -24,6 +25,11 @@ const loading = ref(false)
 const error = ref('')
 const cleanupWarning = ref('')
 const modalOpen = ref(false)
+const saleModalOpen = ref(false)
+const saleMode = ref('cash')
+const saleProduct = ref(null)
+const saleForm = ref({})
+const saleError = ref('')
 const editingProduct = ref(null)
 const saving = ref(false)
 const uploadProgress = ref(0)
@@ -159,6 +165,52 @@ function closeModal() {
   modalOpen.value = false
   releaseSelectedFiles()
   retainedImages.value = []
+}
+
+function localToday() {
+  const today = new Date()
+  return [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-')
+}
+
+function openProductSale(product, mode) {
+  saleProduct.value = product
+  saleMode.value = mode
+  saleForm.value = {
+    sale_date: localToday(),
+    quantity: '1',
+    unit_price: String(product.selling_price),
+    customer_name: '',
+    due_date: '',
+  }
+  saleError.value = ''
+  saleModalOpen.value = true
+}
+
+async function submitProductSale() {
+  saleError.value = ''
+  saving.value = true
+  try {
+    await api.post(`${props.businessUrl}/sales`, {
+      sale_date: saleForm.value.sale_date,
+      customer_name: saleForm.value.customer_name,
+      due_date: saleMode.value === 'credit' ? saleForm.value.due_date || null : null,
+      is_completed: saleMode.value === 'cash',
+      items: [{
+        product_id: saleProduct.value.id,
+        item_name: saleProduct.value.name,
+        quantity: saleForm.value.quantity,
+        unit_price: saleForm.value.unit_price,
+      }],
+    })
+    saleModalOpen.value = false
+    await loadProducts()
+  } catch (requestError) {
+    saleError.value = requestError.response?.data?.message
+      || Object.values(requestError.response?.data?.errors || {}).flat()[0]
+      || t('errorGeneric')
+  } finally {
+    saving.value = false
+  }
 }
 
 async function saveProduct() {
@@ -303,6 +355,10 @@ onBeforeUnmount(() => {
           </div>
           <p v-if="product.cost_price !== null && product.cost_price !== undefined" class="product-sku">{{ t('productCostPrice') }}: {{ formatPrice(product.cost_price) }}</p>
           <p v-if="product.sku" class="product-sku">{{ t('sku') }}: {{ product.sku }}</p>
+          <div v-if="canSell && Number(product.stock_quantity) > 0" class="product-card-actions">
+            <button class="button button-secondary" type="button" @click="openProductSale(product, 'cash')">{{ t('sellProduct') }}</button>
+            <button class="button button-secondary" type="button" @click="openProductSale(product, 'credit')">{{ t('sellProductOnCredit') }}</button>
+          </div>
         </div>
       </article>
     </div>
@@ -364,6 +420,29 @@ onBeforeUnmount(() => {
         <div class="modal-actions">
           <button class="button button-secondary" type="button" :disabled="saving" @click="closeModal">{{ t('cancel') }}</button>
           <button class="button button-primary" :disabled="saving">{{ saving ? t('savingProduct') : t('saveProduct') }}</button>
+        </div>
+      </form>
+    </div>
+
+    <div v-if="saleModalOpen && saleProduct" class="modal-backdrop" @click.self="saleModalOpen = false">
+      <form class="modal-card product-modal" @submit.prevent="submitProductSale">
+        <div class="modal-heading">
+          <div><p class="eyebrow">{{ t('products') }}</p><h2>{{ saleMode === 'cash' ? t('sellProduct') : t('sellProductOnCredit') }}</h2></div>
+          <button class="icon-button" type="button" :aria-label="t('cancel')" :disabled="saving" @click="saleModalOpen = false"><X :size="19" /></button>
+        </div>
+        <p class="inline-note">{{ saleProduct.name }} · {{ t('stockQuantity') }}: {{ saleProduct.stock_quantity }}</p>
+        <div class="form-grid">
+          <label>{{ t('date') }}<input v-model="saleForm.sale_date" type="date" required /></label>
+          <label>{{ t('quantity') }}<input v-model="saleForm.quantity" type="number" min="0.001" :max="saleProduct.stock_quantity" step="0.001" required /></label>
+          <label>{{ t('productPrice') }}<input v-model="saleForm.unit_price" type="number" min="0" max="9999999999.99" step="0.01" required /></label>
+          <label>{{ saleMode === 'credit' ? t('borrowerName') : t('customerName') }}<input v-model="saleForm.customer_name" :required="saleMode === 'credit'" maxlength="150" /></label>
+          <label v-if="saleMode === 'credit'">{{ t('dueDate') }}<input v-model="saleForm.due_date" type="date" /></label>
+        </div>
+        <p v-if="saleMode === 'credit'" class="inline-note">{{ t('productCreditSaleHint') }}</p>
+        <p v-if="saleError" class="form-error" role="alert">{{ saleError }}</p>
+        <div class="modal-actions">
+          <button class="button button-secondary" type="button" :disabled="saving" @click="saleModalOpen = false">{{ t('cancel') }}</button>
+          <button class="button button-primary" :disabled="saving">{{ saving ? t('savingProduct') : t('saveProductSale') }}</button>
         </div>
       </form>
     </div>
