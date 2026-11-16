@@ -12,9 +12,12 @@ onMounted(() => auth.initialize())
 <template>
   <RouterView />
   <div v-if="auth.preparingDashboard" class="dashboard-preparing-overlay" role="status" aria-live="polite">
-    <div class="dashboard-preparing-card">
+    <div class="dashboard-preparing-content">
       <span class="dashboard-preparing-spinner" aria-hidden="true"></span>
-      <p>{{ t('preparingDashboard') }}</p>
+      <p class="dashboard-preparing-message">{{ t('pleaseWait') }}</p>
+      <p v-if="auth.dashboardCountdownSeconds > 0" class="dashboard-countdown">
+        {{ t('dashboardCountdown', { seconds: auth.dashboardCountdownSeconds }) }}
+      </p>
     </div>
   </div>
 </template>

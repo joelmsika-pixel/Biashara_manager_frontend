@@ -90,7 +90,7 @@ async function submit() {
       try {
         await router.replace('/')
       } catch (navigationError) {
-        auth.finishDashboardPreparation()
+        auth.cancelDashboardPreparation()
         throw navigationError
       }
     }
