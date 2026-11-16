@@ -17,6 +17,7 @@
   "passwordReset": "Your password was reset. You can now sign in.",
   "signIn": "Continue",
   "signingIn": "Signing in…",
+  "preparingDashboard": "Preparing your dashboard…",
   "loginLocked": "Too many failed attempts. Sign-in is locked for {time}.",
   "noAccount": "Accounts are created by your platform administrator.",
   "dashboard": "Overview",

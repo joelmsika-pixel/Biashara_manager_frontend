@@ -5,12 +5,22 @@ import api from '../services/api'
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
   const loading = ref(false)
+  const preparingDashboard = ref(false)
   let initialized = false
 
   function clearSession() {
     user.value = null
+    preparingDashboard.value = false
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
+  }
+
+  function startDashboardPreparation() {
+    preparingDashboard.value = true
+  }
+
+  function finishDashboardPreparation() {
+    preparingDashboard.value = false
   }
 
   async function initialize() {
@@ -47,5 +57,15 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, loading, initialize, login, logout, clearSession }
+  return {
+    user,
+    loading,
+    preparingDashboard,
+    initialize,
+    login,
+    logout,
+    clearSession,
+    startDashboardPreparation,
+    finishDashboardPreparation,
+  }
 })

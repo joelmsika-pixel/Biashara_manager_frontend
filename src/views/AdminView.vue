@@ -113,7 +113,13 @@ async function logout() {
   }
 }
 
-onMounted(loadBusinesses)
+onMounted(async () => {
+  try {
+    await loadBusinesses()
+  } finally {
+    auth.finishDashboardPreparation()
+  }
+})
 </script>
 
 <template>

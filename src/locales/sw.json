@@ -17,6 +17,7 @@
   "passwordReset": "Nenosiri limebadilishwa. Sasa unaweza kuingia.",
   "signIn": "Endelea",
   "signingIn": "Inaingia…",
+  "preparingDashboard": "Tunatayarisha dashibodi yako…",
   "loginLocked": "Umejaribu mara nyingi bila mafanikio. Kuingia kumefungwa kwa {time}.",
   "noAccount": "Akaunti huundwa na msimamizi wa mfumo.",
   "dashboard": "Muhtasari",

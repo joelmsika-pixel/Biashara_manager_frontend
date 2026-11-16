@@ -567,6 +567,8 @@ onMounted(async () => {
     await load()
   } catch (requestError) {
     error.value = requestError.response?.data?.message || t('notConfigured')
+  } finally {
+    auth.finishDashboardPreparation()
   }
 })
 </script>
