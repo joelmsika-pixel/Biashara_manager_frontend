@@ -12,9 +12,12 @@ const loading = ref(false)
 const saving = ref(false)
 const includeDeleted = ref(false)
 const error = ref('')
+const notice = ref('')
 const formOpen = ref(false)
 const formError = ref('')
 const form = ref({})
+const removeBusinessTarget = ref(null)
+const removeBusinessData = ref(false)
 
 async function loadBusinesses() {
   loading.value = true
@@ -66,14 +69,29 @@ async function toggleStatus(item) {
   }
 }
 
-async function removeBusiness(item) {
-  if (!window.confirm(`Remove ${item.name}? Its records will be preserved.`)) return
+function removeBusiness(item) {
+  removeBusinessTarget.value = item
+  removeBusinessData.value = false
+}
+
+async function confirmRemoveBusiness() {
+  const item = removeBusinessTarget.value
+  if (!item) return
+  if (removeBusinessData.value && !window.confirm(`Permanently delete ${item.name} and all its business data? This cannot be undone.`)) return
   error.value = ''
+  notice.value = ''
+  saving.value = true
   try {
-    await api.delete(`/admin/businesses/${item.id}`)
+    const { data } = await api.delete(`/admin/businesses/${item.id}`, { data: { delete_data: removeBusinessData.value } })
+    removeBusinessTarget.value = null
+    notice.value = data.image_cleanup_pending
+      ? `${data.message} ${data.image_cleanup_pending} product image file(s) remain queued for cleanup.`
+      : data.message || 'Business removed.'
     await loadBusinesses()
   } catch (requestError) {
     error.value = requestError.response?.data?.message || 'Unable to remove the business.'
+  } finally {
+    saving.value = false
   }
 }
 
@@ -115,6 +133,7 @@ onMounted(loadBusinesses)
     </header>
 
     <div v-if="error" class="notice-banner" role="alert">{{ error }}</div>
+    <div v-if="notice" class="notice-banner" role="status">{{ notice }}</div>
     <section class="panel-card">
       <div class="panel-heading">
         <div class="card-title-row"><span class="metric-icon green"><BriefcaseBusiness :size="17" /></span><strong>All businesses</strong></div>
@@ -167,6 +186,25 @@ onMounted(loadBusinesses)
           <button class="button button-primary" type="submit" :disabled="saving">{{ saving ? 'Creating…' : 'Create business' }}</button>
         </div>
       </form>
+    </div>
+
+    <div v-if="removeBusinessTarget" class="modal-backdrop" @click.self="removeBusinessTarget = null">
+      <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="remove-business-title">
+        <div class="panel-heading">
+          <h2 id="remove-business-title">Remove {{ removeBusinessTarget.name }}?</h2>
+          <button class="icon-button" type="button" aria-label="Close" @click="removeBusinessTarget = null">×</button>
+        </div>
+        <p class="page-subtitle">Choose what to do with this business and its owner's records.</p>
+        <div class="permission-grid" role="radiogroup" aria-label="Business data removal options">
+          <label class="permission-option"><input v-model="removeBusinessData" type="radio" name="business-data-removal" :value="false"> Remove the business but keep its data (you can restore it later)</label>
+          <label class="permission-option"><input v-model="removeBusinessData" type="radio" name="business-data-removal" :value="true"> Permanently delete the business and all its data</label>
+        </div>
+        <p v-if="removeBusinessData" class="form-error" role="alert">This permanently deletes the business's records and product images. The owner's account is deleted only if they have no other business memberships. This cannot be undone.</p>
+        <div class="heading-actions">
+          <button class="button button-secondary" type="button" @click="removeBusinessTarget = null">Cancel</button>
+          <button class="button button-primary" type="button" :disabled="saving" @click="confirmRemoveBusiness">{{ saving ? 'Removing…' : 'Remove business' }}</button>
+        </div>
+      </section>
     </div>
   </main>
 </template>
