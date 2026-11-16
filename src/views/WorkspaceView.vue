@@ -39,6 +39,8 @@ const saving = ref(false)
 const formError = ref('')
 const form = ref({})
 const restoringEmployee = ref(null)
+const removeEmployeeTarget = ref(null)
+const removeEmployeeData = ref(false)
 const dateFrom = ref('')
 const dateTo = ref('')
 const reportPeriod = ref('month')
@@ -437,13 +439,25 @@ async function submitLoanRepayment() {
   }
 }
 
-async function updateEmployee(employee) {
+function updateEmployee(employee) {
   if (!employee.is_active) return
+  removeEmployeeTarget.value = employee
+  removeEmployeeData.value = false
+}
+
+async function removeEmployee() {
+  const employee = removeEmployeeTarget.value
+  if (!employee) return
+  if (removeEmployeeData.value && !window.confirm(t('employeeDeleteDataConfirm', { name: employee.name }))) return
+  saving.value = true
   try {
-    await api.patch(`${businessUrl.value}/employees/${employee.id}`, { is_active: false })
+    await api.delete(`${businessUrl.value}/employees/${employee.id}`, { data: { delete_data: removeEmployeeData.value } })
+    removeEmployeeTarget.value = null
     await load()
   } catch (requestError) {
     error.value = requestError.response?.data?.message || t('errorGeneric')
+  } finally {
+    saving.value = false
   }
 }
 
@@ -677,6 +691,25 @@ onMounted(async () => {
           <div v-if="pagination && pagination.last_page > 1" class="pagination"><span>{{ t('page') }} {{ pagination.current_page }} {{ t('of') }} {{ pagination.last_page }}</span><div><button class="button button-secondary" :disabled="page <= 1" @click="page--">{{ t('previous') }}</button><button class="button button-secondary" :disabled="page >= pagination.last_page" @click="page++">{{ t('next') }}</button></div></div>
         </section>
         <p v-if="section === 'dashboard' && isOwner" class="profit-disclaimer">{{ t('noProfit') }}</p>
+      </div>
+
+      <div v-if="removeEmployeeTarget" class="modal-backdrop" @click.self="removeEmployeeTarget = null">
+        <section class="modal-card" role="dialog" aria-modal="true" :aria-label="t('removeEmployee')">
+          <div class="modal-heading">
+            <div><p class="eyebrow">{{ business?.name || t('brand') }}</p><h2>{{ t('removeEmployee') }} {{ removeEmployeeTarget.name }}</h2></div>
+            <button class="icon-button" type="button" :aria-label="t('cancel')" @click="removeEmployeeTarget = null">×</button>
+          </div>
+          <p class="inline-note">{{ t('employeeRemoveHint') }}</p>
+          <div class="permission-grid" role="radiogroup" :aria-label="t('employeeRemoveHint')">
+            <label class="permission-option"><input v-model="removeEmployeeData" type="radio" name="employee-data-removal" :value="false"> {{ t('employeeKeepData') }}</label>
+            <label class="permission-option"><input v-model="removeEmployeeData" type="radio" name="employee-data-removal" :value="true"> {{ t('employeeDeleteData') }}</label>
+          </div>
+          <p v-if="removeEmployeeData" class="form-error" role="alert">{{ t('employeeDeleteDataWarning') }}</p>
+          <div class="modal-actions">
+            <button class="button button-secondary" type="button" @click="removeEmployeeTarget = null">{{ t('cancel') }}</button>
+            <button class="button button-primary" type="button" :disabled="saving" @click="removeEmployee">{{ saving ? t('loading') : t('removeEmployee') }}</button>
+          </div>
+        </section>
       </div>
     </main>
 

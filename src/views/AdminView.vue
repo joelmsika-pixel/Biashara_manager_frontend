@@ -36,8 +36,12 @@ function openCreate() {
 }
 
 async function createBusiness() {
-  saving.value = true
   formError.value = ''
+  if (form.value.owner_password && form.value.owner_password !== form.value.owner_password_confirmation) {
+    formError.value = 'The password confirmation does not match.'
+    return
+  }
+  saving.value = true
   try {
     await api.post('/admin/businesses', form.value)
     formOpen.value = false
@@ -155,6 +159,7 @@ onMounted(loadBusinesses)
           <label>Owner email<input v-model="form.owner_email" required type="email" maxlength="150"></label>
           <label>Owner phone<input v-model="form.owner_phone" maxlength="30"></label>
           <label>Initial owner password<input v-model="form.owner_password" type="password" minlength="12" autocomplete="new-password"></label>
+          <label>Confirm initial owner password<input v-model="form.owner_password_confirmation" type="password" minlength="12" autocomplete="new-password"></label>
         </div>
         <p class="page-subtitle">A new owner password must have at least 12 characters. Existing accounts keep their current password.</p>
         <div class="heading-actions">
