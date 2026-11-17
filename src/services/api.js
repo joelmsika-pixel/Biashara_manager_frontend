@@ -10,20 +10,47 @@ const api = axios.create({
 
 let refreshRequest = null
 
-async function refreshAccessToken(rejectedAccessToken) {
+function saveTokenPair(data) {
+  localStorage.setItem('access_token', data.token)
+  localStorage.setItem('refresh_token', data.refresh_token)
+  localStorage.setItem('access_token_expires_at', data.expires_at)
+  localStorage.setItem('access_token_issued_at', String(Date.now()))
+}
+
+function refreshLeadMs(expiresAt, issuedAt) {
+  const lifetime = expiresAt - issuedAt
+  if (!Number.isFinite(lifetime) || lifetime <= 0) return 0
+  return Math.max(1000, Math.min(60_000, lifetime * 0.1))
+}
+
+function needsTokenRefresh() {
+  const expiresAt = Date.parse(localStorage.getItem('access_token_expires_at') || '')
+  const issuedAt = Number(localStorage.getItem('access_token_issued_at'))
+  return !Number.isFinite(expiresAt)
+    || !Number.isFinite(issuedAt)
+    || expiresAt <= Date.now() + refreshLeadMs(expiresAt, issuedAt)
+}
+
+async function refreshAccessToken(rejectedAccessToken, force = false) {
   const refresh = async () => {
     const accessToken = localStorage.getItem('access_token')
     const refreshToken = localStorage.getItem('refresh_token')
     if (!accessToken || !refreshToken) throw new Error('The session has expired.')
     if (accessToken !== rejectedAccessToken) return accessToken
 
+    const expiresAt = Date.parse(localStorage.getItem('access_token_expires_at') || '')
+    const issuedAt = Number(localStorage.getItem('access_token_issued_at'))
+    if (!force && Number.isFinite(expiresAt) && Number.isFinite(issuedAt)
+      && expiresAt > Date.now() + refreshLeadMs(expiresAt, issuedAt)) {
+      return accessToken
+    }
+
     const { data } = await axios.post(
       `${api.defaults.baseURL}/token/refresh`,
       { refresh_token: refreshToken },
       { headers: { Accept: 'application/json' }, timeout: api.defaults.timeout },
     )
-    localStorage.setItem('access_token', data.token)
-    localStorage.setItem('refresh_token', data.refresh_token)
+    saveTokenPair(data)
     return data.token
   }
 
@@ -33,8 +60,35 @@ async function refreshAccessToken(rejectedAccessToken) {
   return refresh()
 }
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token')
+function getRefreshRequest(accessToken, force = false) {
+  if (!refreshRequest) {
+    refreshRequest = refreshAccessToken(accessToken, force).finally(() => {
+      refreshRequest = null
+    })
+  }
+  return refreshRequest
+}
+
+async function clearSessionAndRedirect() {
+  const auth = useAuthStore()
+  auth.clearSession()
+  if (router.currentRoute.value.name !== 'login') await router.push({ name: 'login' })
+}
+
+api.interceptors.request.use(async (config) => {
+  let token = localStorage.getItem('access_token')
+  const publicEndpoint = ['/login', '/forgot-password', '/reset-password']
+    .some((path) => config.url?.includes(path))
+
+  if (token && localStorage.getItem('refresh_token') && !publicEndpoint && needsTokenRefresh()) {
+    try {
+      token = await getRefreshRequest(token)
+    } catch (refreshError) {
+      await clearSessionAndRedirect()
+      return Promise.reject(refreshError)
+    }
+  }
+
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
@@ -57,23 +111,15 @@ api.interceptors.response.use(
 
     request._retry = true
     try {
-      if (!refreshRequest) {
-        const authorization = request.headers?.Authorization || request.headers?.authorization
-        const rejectedAccessToken = typeof authorization === 'string'
-          ? authorization.replace(/^Bearer\s+/i, '')
-          : ''
-        refreshRequest = refreshAccessToken(rejectedAccessToken).finally(() => {
-          refreshRequest = null
-        })
-      }
-
-      const token = await refreshRequest
+      const authorization = request.headers?.Authorization || request.headers?.authorization
+      const rejectedAccessToken = typeof authorization === 'string'
+        ? authorization.replace(/^Bearer\s+/i, '')
+        : ''
+      const token = await getRefreshRequest(rejectedAccessToken, true)
       request.headers.Authorization = `Bearer ${token}`
       return api(request)
     } catch (refreshError) {
-      const auth = useAuthStore()
-      auth.clearSession()
-      if (router.currentRoute.value.name !== 'login') await router.push({ name: 'login' })
+      await clearSessionAndRedirect()
       return Promise.reject(refreshError)
     }
   },

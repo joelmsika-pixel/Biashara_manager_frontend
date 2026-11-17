@@ -24,6 +24,8 @@ export const useAuthStore = defineStore('auth', () => {
     cancelDashboardPreparation()
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
+    localStorage.removeItem('access_token_expires_at')
+    localStorage.removeItem('access_token_issued_at')
   }
 
   function startDashboardPreparation() {
@@ -73,6 +75,8 @@ export const useAuthStore = defineStore('auth', () => {
       const { data } = await api.post('/login', credentials)
       localStorage.setItem('access_token', data.token)
       localStorage.setItem('refresh_token', data.refresh_token)
+      localStorage.setItem('access_token_expires_at', data.expires_at)
+      localStorage.setItem('access_token_issued_at', String(Date.now()))
       user.value = data.user
       initialized = true
     } finally {
