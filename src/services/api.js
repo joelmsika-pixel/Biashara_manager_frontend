@@ -9,12 +9,14 @@ const api = axios.create({
 })
 
 let refreshRequest = null
+let tokenRefreshTimer = null
 
 function saveTokenPair(data) {
   localStorage.setItem('access_token', data.token)
   localStorage.setItem('refresh_token', data.refresh_token)
   localStorage.setItem('access_token_expires_at', data.expires_at)
   localStorage.setItem('access_token_issued_at', String(Date.now()))
+  scheduleTokenRefresh()
 }
 
 function refreshLeadMs(expiresAt, issuedAt) {
@@ -75,8 +77,43 @@ async function clearSessionAndRedirect() {
   if (router.currentRoute.value.name !== 'login') await router.push({ name: 'login' })
 }
 
+function scheduleTokenRefresh() {
+  if (tokenRefreshTimer !== null) clearTimeout(tokenRefreshTimer)
+  tokenRefreshTimer = null
+
+  const accessToken = localStorage.getItem('access_token')
+  if (!accessToken || !localStorage.getItem('refresh_token')) return
+
+  const expiresAt = Date.parse(localStorage.getItem('access_token_expires_at') || '')
+  const issuedAt = Number(localStorage.getItem('access_token_issued_at'))
+  if (!Number.isFinite(expiresAt) || !Number.isFinite(issuedAt)) return
+
+  const delay = Math.max(0, expiresAt - Date.now() - refreshLeadMs(expiresAt, issuedAt))
+  tokenRefreshTimer = setTimeout(() => {
+    tokenRefreshTimer = null
+    const currentToken = localStorage.getItem('access_token')
+    if (!currentToken || !localStorage.getItem('refresh_token')) return
+    getRefreshRequest(currentToken).catch(clearSessionAndRedirect)
+  }, delay)
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if ([
+      'access_token',
+      'refresh_token',
+      'access_token_expires_at',
+      'access_token_issued_at',
+    ].includes(event.key || '')) {
+      scheduleTokenRefresh()
+    }
+  })
+  scheduleTokenRefresh()
+}
+
 api.interceptors.request.use(async (config) => {
   let token = localStorage.getItem('access_token')
+  if (token) scheduleTokenRefresh()
   const publicEndpoint = ['/login', '/forgot-password', '/reset-password']
     .some((path) => config.url?.includes(path))
 
