@@ -10,6 +10,29 @@ const api = axios.create({
 
 let refreshRequest = null
 
+async function refreshAccessToken(rejectedAccessToken) {
+  const refresh = async () => {
+    const accessToken = localStorage.getItem('access_token')
+    const refreshToken = localStorage.getItem('refresh_token')
+    if (!accessToken || !refreshToken) throw new Error('The session has expired.')
+    if (accessToken !== rejectedAccessToken) return accessToken
+
+    const { data } = await axios.post(
+      `${api.defaults.baseURL}/token/refresh`,
+      { refresh_token: refreshToken },
+      { headers: { Accept: 'application/json' }, timeout: api.defaults.timeout },
+    )
+    localStorage.setItem('access_token', data.token)
+    localStorage.setItem('refresh_token', data.refresh_token)
+    return data.token
+  }
+
+  if (typeof navigator !== 'undefined' && navigator.locks?.request) {
+    return navigator.locks.request('bizkua-api-token-refresh', refresh)
+  }
+  return refresh()
+}
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token')
   if (token) config.headers.Authorization = `Bearer ${token}`
@@ -35,15 +58,11 @@ api.interceptors.response.use(
     request._retry = true
     try {
       if (!refreshRequest) {
-        refreshRequest = axios.post(
-          `${api.defaults.baseURL}/token/refresh`,
-          { refresh_token: localStorage.getItem('refresh_token') },
-          { headers: { Accept: 'application/json' }, timeout: api.defaults.timeout },
-        ).then(({ data }) => {
-          localStorage.setItem('access_token', data.token)
-          localStorage.setItem('refresh_token', data.refresh_token)
-          return data.token
-        }).finally(() => {
+        const authorization = request.headers?.Authorization || request.headers?.authorization
+        const rejectedAccessToken = typeof authorization === 'string'
+          ? authorization.replace(/^Bearer\s+/i, '')
+          : ''
+        refreshRequest = refreshAccessToken(rejectedAccessToken).finally(() => {
           refreshRequest = null
         })
       }
