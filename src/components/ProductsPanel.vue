@@ -401,7 +401,7 @@ onBeforeUnmount(() => {
         </div>
         <div class="form-grid">
           <label>{{ t('productName') }}<span class="required-mark"> *</span><input v-model="form.name" name="product-name" maxlength="150" required /></label>
-          <label>{{ t('category') }}<span class="required-mark"> *</span><input v-model="form.category" name="product-category" maxlength="100" required /></label>
+          <label>{{ t('category') }}<span class="required-mark"> *</span><input v-model="form.category" name="product-category" list="product-categories" maxlength="100" required /><datalist id="product-categories"><option v-for="category in categories" :key="category" :value="category" /></datalist></label>
           <label>{{ t('productSellingPrice') }}<span class="required-mark"> *</span><input v-model="form.selling_price" name="selling-price" type="number" min="0" max="9999999999.99" step="0.01" required /></label>
           <label>{{ t('productCostPrice') }}<input v-model="form.cost_price" name="cost-price" type="number" min="0" max="9999999999.99" step="0.01" /></label>
           <label>{{ t('sku') }}<input v-model="form.sku" name="product-sku" maxlength="100" /></label>
