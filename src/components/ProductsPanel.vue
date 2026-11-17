@@ -309,13 +309,13 @@ onBeforeUnmount(() => {
     <div class="products-toolbar">
       <label class="search-box products-search">
         <Search :size="17" />
-        <input v-model="search" :placeholder="t('productsSearch')" :aria-label="t('productsSearch')" />
+        <input v-model="search" name="products-search" :placeholder="t('productsSearch')" :aria-label="t('productsSearch')" />
       </label>
-      <select v-model="categoryFilter" class="products-filter" :aria-label="t('category')">
+      <select v-model="categoryFilter" name="products-category" class="products-filter" :aria-label="t('category')">
         <option value="">{{ t('allCategories') }}</option>
         <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
       </select>
-      <select v-model="stockFilter" class="products-filter" :aria-label="t('productStockFilter')">
+      <select v-model="stockFilter" name="products-stock" class="products-filter" :aria-label="t('productStockFilter')">
         <option value="all">{{ t('allStock') }}</option>
         <option value="in-stock">{{ t('inStock') }}</option>
         <option value="out-of-stock">{{ t('outOfStock') }}</option>
@@ -379,13 +379,13 @@ onBeforeUnmount(() => {
           <button class="icon-button" type="button" :aria-label="t('cancel')" :disabled="saving" @click="closeModal"><X :size="19" /></button>
         </div>
         <div class="form-grid">
-          <label>{{ t('productName') }}<span class="required-mark"> *</span><input v-model="form.name" maxlength="150" required /></label>
-          <label>{{ t('category') }}<span class="required-mark"> *</span><input v-model="form.category" maxlength="100" required /></label>
-          <label>{{ t('productSellingPrice') }}<span class="required-mark"> *</span><input v-model="form.selling_price" type="number" min="0" max="9999999999.99" step="0.01" required /></label>
-          <label>{{ t('productCostPrice') }}<input v-model="form.cost_price" type="number" min="0" max="9999999999.99" step="0.01" /></label>
-          <label>{{ t('sku') }}<input v-model="form.sku" maxlength="100" /></label>
-          <label>{{ t('stockQuantity') }}<span class="required-mark"> *</span><input v-model="form.stock_quantity" type="number" min="0" max="999999999.999" step="0.001" required /></label>
-          <label class="form-span">{{ t('description') }}<textarea v-model="form.description" maxlength="2000" rows="3"></textarea></label>
+          <label>{{ t('productName') }}<span class="required-mark"> *</span><input v-model="form.name" name="product-name" maxlength="150" required /></label>
+          <label>{{ t('category') }}<span class="required-mark"> *</span><input v-model="form.category" name="product-category" maxlength="100" required /></label>
+          <label>{{ t('productSellingPrice') }}<span class="required-mark"> *</span><input v-model="form.selling_price" name="selling-price" type="number" min="0" max="9999999999.99" step="0.01" required /></label>
+          <label>{{ t('productCostPrice') }}<input v-model="form.cost_price" name="cost-price" type="number" min="0" max="9999999999.99" step="0.01" /></label>
+          <label>{{ t('sku') }}<input v-model="form.sku" name="product-sku" maxlength="100" /></label>
+          <label>{{ t('stockQuantity') }}<span class="required-mark"> *</span><input v-model="form.stock_quantity" name="stock-quantity" type="number" min="0" max="999999999.999" step="0.001" required /></label>
+          <label class="form-span">{{ t('description') }}<textarea v-model="form.description" name="product-description" maxlength="2000" rows="3"></textarea></label>
         </div>
 
         <div class="product-image-section">
@@ -400,7 +400,7 @@ onBeforeUnmount(() => {
               <button type="button" :aria-label="t('removeImage')" :disabled="saving" @click="removeSelectedFile(index)"><X :size="14" /></button>
             </div>
           </div>
-          <input ref="fileInput" class="visually-hidden" type="file" accept=".jpg,.jpeg,.png,.webp,.svg,image/jpeg,image/png,image/webp,image/svg+xml" multiple @change="addFiles" />
+          <input ref="fileInput" class="visually-hidden" name="images" type="file" accept=".jpg,.jpeg,.png,.webp,.svg,image/jpeg,image/png,image/webp,image/svg+xml" multiple @change="addFiles" />
           <button
             class="button button-secondary product-upload-button"
             type="button"
@@ -432,11 +432,11 @@ onBeforeUnmount(() => {
         </div>
         <p class="inline-note">{{ saleProduct.name }} · {{ t('stockQuantity') }}: {{ saleProduct.stock_quantity }}</p>
         <div class="form-grid">
-          <label>{{ t('date') }}<input v-model="saleForm.sale_date" type="date" required /></label>
-          <label>{{ t('quantity') }}<input v-model="saleForm.quantity" type="number" min="0.001" :max="saleProduct.stock_quantity" step="0.001" required /></label>
-          <label>{{ t('productPrice') }}<input v-model="saleForm.unit_price" type="number" min="0" max="9999999999.99" step="0.01" required /></label>
-          <label>{{ saleMode === 'credit' ? t('borrowerName') : t('customerName') }}<input v-model="saleForm.customer_name" :required="saleMode === 'credit'" maxlength="150" /></label>
-          <label v-if="saleMode === 'credit'">{{ t('dueDate') }}<input v-model="saleForm.due_date" type="date" /></label>
+          <label>{{ t('date') }}<input v-model="saleForm.sale_date" name="sale-date" type="date" required /></label>
+          <label>{{ t('quantity') }}<input v-model="saleForm.quantity" name="sale-quantity" type="number" min="0.001" :max="saleProduct.stock_quantity" step="0.001" required /></label>
+          <label>{{ t('productPrice') }}<input v-model="saleForm.unit_price" name="sale-unit-price" type="number" min="0" max="9999999999.99" step="0.01" required /></label>
+          <label>{{ saleMode === 'credit' ? t('borrowerName') : t('customerName') }}<input v-model="saleForm.customer_name" name="sale-customer-name" :required="saleMode === 'credit'" maxlength="150" /></label>
+          <label v-if="saleMode === 'credit'">{{ t('dueDate') }}<input v-model="saleForm.due_date" name="sale-due-date" type="date" /></label>
         </div>
         <p v-if="saleMode === 'credit'" class="inline-note">{{ t('productCreditSaleHint') }}</p>
         <p v-if="saleError" class="form-error" role="alert">{{ saleError }}</p>

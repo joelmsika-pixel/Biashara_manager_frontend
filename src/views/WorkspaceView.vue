@@ -625,7 +625,7 @@ onMounted(async () => {
       </div>
       <div v-if="businesses.length" class="business-switcher">
         <span>{{ t('businessSelector') }}</span>
-        <div class="select-wrap"><BriefcaseBusiness :size="15" /><select v-model="selectedBusinessId" :aria-label="t('businessSelector')">
+        <div class="select-wrap"><BriefcaseBusiness :size="15" /><select v-model="selectedBusinessId" name="business-selector" :aria-label="t('businessSelector')">
           <option v-for="item in businesses" :key="item.id" :value="String(item.id)">{{ item.name }}</option>
         </select><ChevronDown :size="14" /></div>
       </div>
@@ -727,7 +727,7 @@ onMounted(async () => {
 
         <section v-if="section !== 'dashboard' && section !== 'inbox' && section !== 'products'" class="panel-card">
           <div v-if="['sales', 'income', 'expenses', 'debts', 'reports'].includes(section)" class="table-toolbar">
-            <div v-if="['sales', 'income', 'expenses', 'debts', 'reports'].includes(section)" class="search-box"><Search :size="17" /><input v-model="query" :placeholder="t('search')" /></div>
+            <div v-if="['sales', 'income', 'expenses', 'debts', 'reports'].includes(section)" class="search-box"><Search :size="17" /><input v-model="query" name="workspace-search" :placeholder="t('search')" /></div>
             <div v-if="section === 'reports'" class="report-periods" role="group" :aria-label="t('reportPeriod')">
               <button v-for="period in ['week', 'month', 'year']" :key="period" class="button" :class="reportPeriod === period ? 'button-primary' : 'button-secondary'" @click="changeReportPeriod(period)">{{ t(period) }}</button>
             </div>
@@ -826,13 +826,13 @@ onMounted(async () => {
         <div class="form-grid">
           <label v-for="field in fields[section]" :key="field.name" :class="{ 'form-span': field.type === 'textarea' }">
             {{ t(field.label) }}<span v-if="field.required" class="required-mark"> *</span>
-            <select v-if="field.type === 'select'" v-model="form[field.name]" :required="field.required">
+            <select v-if="field.type === 'select'" v-model="form[field.name]" :name="field.name" :required="field.required">
               <option value="">—</option>
               <option v-for="option in field.options" :key="typeof option === 'string' ? option : option.value" :value="typeof option === 'string' ? option : option.value">{{ typeof option === 'string' ? option : option.label }}</option>
             </select>
-            <input v-else-if="field.type === 'display'" :value="business?.name || ''" readonly />
-            <textarea v-else-if="field.type === 'textarea'" v-model="form[field.name]" rows="3" :required="field.required"></textarea>
-            <input v-else v-model="form[field.name]" :type="field.type" :required="field.required || (restoringEmployee && ['password', 'password_confirmation'].includes(field.name))" :min="field.min" :step="field.step" :minlength="field.minlength" :disabled="field.autoToday" :autocomplete="field.type === 'password' ? 'new-password' : undefined" />
+            <input v-else-if="field.type === 'display'" name="business-name" :value="business?.name || ''" readonly />
+            <textarea v-else-if="field.type === 'textarea'" v-model="form[field.name]" :name="field.name" rows="3" :required="field.required"></textarea>
+            <input v-else v-model="form[field.name]" :name="field.name" :type="field.type" :required="field.required || (restoringEmployee && ['password', 'password_confirmation'].includes(field.name))" :min="field.min" :step="field.step" :minlength="field.minlength" :disabled="field.autoToday" :autocomplete="field.type === 'password' ? 'new-password' : undefined" />
           </label>
         </div>
         <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
@@ -849,10 +849,10 @@ onMounted(async () => {
         <h3>{{ t('payments') }}</h3><p class="page-subtitle">{{ t('paymentNote') }}</p><div v-if="saleDetails.payments.length"><div v-for="payment in saleDetails.payments" :key="payment.id" class="detail-row"><span>{{ formatDate(payment.payment_date) }} · {{ payment.payment_method }}</span><strong>{{ formatMoney(payment.amount) }}</strong></div></div><p v-else class="state-message">{{ t('empty') }}</p>
         <button v-if="can('payments.create') && Number(saleDetails.balance) > 0" class="button button-primary payment-add" @click="openPaymentForm">{{ t('recordPayment') }}</button>
         <form v-if="paymentFormOpen" class="payment-entry" @submit.prevent="submitPayment">
-          <label>{{ t('amount') }}<input v-model="paymentForm.amount" type="number" min="0.01" step="0.01" required /></label>
-          <label>{{ t('date') }}<input v-model="paymentForm.payment_date" type="date" required disabled /></label>
-          <label>{{ t('paymentMethod') }}<input v-model="paymentForm.payment_method" required /></label>
-          <label>{{ t('reference') }}<input v-model="paymentForm.reference" /></label>
+          <label>{{ t('amount') }}<input v-model="paymentForm.amount" name="payment-amount" type="number" min="0.01" step="0.01" required /></label>
+          <label>{{ t('date') }}<input v-model="paymentForm.payment_date" name="payment-date" type="date" required disabled /></label>
+          <label>{{ t('paymentMethod') }}<input v-model="paymentForm.payment_method" name="payment-method" required /></label>
+          <label>{{ t('reference') }}<input v-model="paymentForm.reference" name="payment-reference" /></label>
           <p v-if="paymentError" class="form-error" role="alert">{{ paymentError }}</p>
           <button type="button" class="button button-secondary" @click="paymentFormOpen = false">{{ t('cancel') }}</button>
           <button class="button button-primary" :disabled="paymentSaving">{{ paymentSaving ? t('loading') : t('save') }}</button>
@@ -864,9 +864,9 @@ onMounted(async () => {
         <div class="modal-heading"><div><p class="eyebrow">{{ t('businessLoan') }}</p><h2>{{ repaymentLoan.borrower_name }}</h2></div><button class="icon-button" type="button" :aria-label="t('cancel')" @click="repaymentLoan = null"><X :size="19" /></button></div>
         <p class="inline-note">{{ t('loanBalance') }}: {{ formatMoney(repaymentLoan.balance) }}</p>
         <div class="form-grid">
-          <label>{{ t('amount') }}<input v-model="repaymentForm.amount" type="number" min="0.01" :max="repaymentLoan.balance" step="0.01" required readonly /></label>
-          <label>{{ t('date') }}<input v-model="repaymentForm.payment_date" type="date" required disabled /></label>
-          <label class="form-span">{{ t('paymentDestination') }}<select v-model="repaymentForm.destination" required><option value="">—</option><option v-for="destination in ['income', 'expenses', 'sales']" :key="destination" :value="destination">{{ t(destination) }}</option></select></label>
+          <label>{{ t('amount') }}<input v-model="repaymentForm.amount" name="repayment-amount" type="number" min="0.01" :max="repaymentLoan.balance" step="0.01" required readonly /></label>
+          <label>{{ t('date') }}<input v-model="repaymentForm.payment_date" name="repayment-date" type="date" required disabled /></label>
+          <label class="form-span">{{ t('paymentDestination') }}<select v-model="repaymentForm.destination" name="repayment-destination" required><option value="">—</option><option v-for="destination in ['income', 'expenses', 'sales']" :key="destination" :value="destination">{{ t(destination) }}</option></select></label>
         </div>
         <p v-if="repaymentError" class="form-error" role="alert">{{ repaymentError }}</p>
         <div class="modal-actions"><button class="button button-secondary" type="button" @click="repaymentLoan = null">{{ t('cancel') }}</button><button class="button button-primary" :disabled="repaymentSaving">{{ repaymentSaving ? t('loading') : t('markAsPaid') }}</button></div>

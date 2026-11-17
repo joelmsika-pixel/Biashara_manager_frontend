@@ -212,17 +212,17 @@ onMounted(async () => {
         <div class="panel-heading"><h2>Create a business</h2><button class="icon-button" type="button" aria-label="Close" @click="formOpen = false">×</button></div>
         <div v-if="formError" class="form-error" role="alert">{{ formError }}</div>
         <div class="form-grid">
-          <label>Business name<input v-model="form.name" required maxlength="150"></label>
-          <label>Business type<input v-model="form.business_type" maxlength="100"></label>
-          <label>Business phone<input v-model="form.phone" maxlength="30"></label>
-          <label>Business email<input v-model="form.email" type="email" maxlength="150"></label>
-          <label>Address<input v-model="form.address" maxlength="1000"></label>
-          <label>Currency<select v-model="form.currency"><option>TZS</option><option>KES</option><option>UGX</option><option>USD</option></select></label>
-          <label>Owner name<input v-model="form.owner_name" required maxlength="150"></label>
-          <label>Owner email<input v-model="form.owner_email" required type="email" maxlength="150"></label>
-          <label>Owner phone<input v-model="form.owner_phone" maxlength="30"></label>
-          <label>Initial owner password<input v-model="form.owner_password" type="password" minlength="12" autocomplete="new-password"></label>
-          <label>Confirm initial owner password<input v-model="form.owner_password_confirmation" type="password" minlength="12" autocomplete="new-password"></label>
+          <label>Business name<input v-model="form.name" name="business-name" required maxlength="150"></label>
+          <label>Business type<input v-model="form.business_type" name="business-type" maxlength="100"></label>
+          <label>Business phone<input v-model="form.phone" name="business-phone" maxlength="30"></label>
+          <label>Business email<input v-model="form.email" name="business-email" type="email" maxlength="150"></label>
+          <label>Address<input v-model="form.address" name="business-address" maxlength="1000"></label>
+          <label>Currency<select v-model="form.currency" name="business-currency"><option>TZS</option><option>KES</option><option>UGX</option><option>USD</option></select></label>
+          <label>Owner name<input v-model="form.owner_name" name="owner-name" required maxlength="150"></label>
+          <label>Owner email<input v-model="form.owner_email" name="owner-email" required type="email" maxlength="150"></label>
+          <label>Owner phone<input v-model="form.owner_phone" name="owner-phone" maxlength="30"></label>
+          <label>Initial owner password<input v-model="form.owner_password" name="owner-password" type="password" minlength="12" autocomplete="new-password"></label>
+          <label>Confirm initial owner password<input v-model="form.owner_password_confirmation" name="owner-password-confirmation" type="password" minlength="12" autocomplete="new-password"></label>
         </div>
         <p class="page-subtitle">A new owner password must have at least 12 characters. Existing accounts keep their current password.</p>
         <div class="heading-actions">
