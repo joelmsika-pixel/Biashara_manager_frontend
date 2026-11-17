@@ -84,6 +84,8 @@
   "completedSaleNote": "Mauzo yaliyokamilika yanarekodiwa kuwa yamelipwa na hayaonekani kwenye madeni.",
   "productName": "Jina la bidhaa",
   "productPrice": "Bei ya bidhaa",
+  "unit": "Kipimo",
+  "unitPrice": "Bei kwa kipimo",
   "customerName": "Jina la mteja",
   "quantity": "Idadi",
   "businessType": "Aina ya biashara",

@@ -3,6 +3,7 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ImagePlus, Package, Pencil, Plus, Search, Trash2, Upload, X } from '@lucide/vue'
 import api from '../services/api'
+import { commonUnits } from '../constants/units'
 
 const props = defineProps({
   businessUrl: { type: String, required: true },
@@ -50,6 +51,7 @@ function blankForm() {
     cost_price: '',
     sku: '',
     category: '',
+    unit: 'pieces',
     stock_quantity: '0',
   }
 }
@@ -154,6 +156,7 @@ function openEdit(product) {
     cost_price: product.cost_price === null ? '' : String(product.cost_price ?? ''),
     sku: product.sku || '',
     category: product.category || '',
+    unit: product.unit || 'pieces',
     stock_quantity: String(product.stock_quantity ?? '0'),
   }
   retainedImages.value = [...(product.images || [])]
@@ -202,6 +205,7 @@ async function submitProductSale() {
         product_id: saleProduct.value.id,
         item_name: saleProduct.value.name,
         quantity: saleForm.value.quantity,
+        unit: saleProduct.value.unit,
         unit_price: saleForm.value.unit_price,
       }],
     })
@@ -333,7 +337,7 @@ onBeforeUnmount(() => {
     </div>
 
     <section v-if="categoryStock.length" class="category-stock-grid" :aria-label="t('categoryStock')">
-      <article v-for="category in categoryStock" :key="category.category" class="category-stock-card">
+      <article v-for="category in categoryStock" :key="`${category.category}-${category.unit}`" class="category-stock-card">
         <div class="category-stock-heading">
           <span class="category-stock-icon"><Package :size="17" /></span>
           <h2>{{ category.category }}</h2>
@@ -341,7 +345,8 @@ onBeforeUnmount(() => {
         </div>
         <div class="category-stock-total">
           <strong>{{ formatQuantity(category.remaining_quantity) }}</strong>
-          <span>{{ t('remainingStock') }}</span>
+          <span class="category-stock-unit">{{ category.unit }}</span>
+          <small>{{ t('remainingStock') }}</small>
         </div>
       </article>
     </section>
@@ -371,10 +376,10 @@ onBeforeUnmount(() => {
           </div>
           <p v-if="product.description" class="product-description">{{ product.description }}</p>
           <div class="product-card-details">
-            <strong>{{ formatPrice(product.selling_price) }}</strong>
-            <span>{{ t('stockQuantity') }}: {{ product.stock_quantity }}</span>
+            <strong>{{ formatPrice(product.selling_price) }} / {{ product.unit }}</strong>
+            <span>{{ t('stockQuantity') }}: {{ formatQuantity(product.stock_quantity) }} {{ product.unit }}</span>
           </div>
-          <p v-if="product.cost_price !== null && product.cost_price !== undefined" class="product-sku">{{ t('productCostPrice') }}: {{ formatPrice(product.cost_price) }}</p>
+          <p v-if="product.cost_price !== null && product.cost_price !== undefined" class="product-sku">{{ t('productCostPrice') }}: {{ formatPrice(product.cost_price) }} / {{ product.unit }}</p>
           <p v-if="product.sku" class="product-sku">{{ t('sku') }}: {{ product.sku }}</p>
           <div v-if="canSell && Number(product.stock_quantity) > 0" class="product-card-actions">
             <button class="button button-secondary" type="button" @click="openProductSale(product, 'cash')">{{ t('sellProduct') }}</button>
@@ -402,7 +407,8 @@ onBeforeUnmount(() => {
         <div class="form-grid">
           <label>{{ t('productName') }}<span class="required-mark"> *</span><input v-model="form.name" name="product-name" maxlength="150" required /></label>
           <label>{{ t('category') }}<span class="required-mark"> *</span><input v-model="form.category" name="product-category" list="product-categories" maxlength="100" required /><datalist id="product-categories"><option v-for="category in categories" :key="category" :value="category" /></datalist></label>
-          <label>{{ t('productSellingPrice') }}<span class="required-mark"> *</span><input v-model="form.selling_price" name="selling-price" type="number" min="0" max="9999999999.99" step="0.01" required /></label>
+          <label>{{ t('unit') }}<span class="required-mark"> *</span><input v-model="form.unit" name="product-unit" list="product-unit-suggestions" maxlength="40" required /><datalist id="product-unit-suggestions"><option v-for="unit in commonUnits" :key="unit" :value="unit" /></datalist></label>
+          <label>{{ t('unitPrice') }}<span class="required-mark"> *</span><input v-model="form.selling_price" name="selling-price" type="number" min="0" max="9999999999.99" step="0.01" required /></label>
           <label>{{ t('productCostPrice') }}<input v-model="form.cost_price" name="cost-price" type="number" min="0" max="9999999999.99" step="0.01" /></label>
           <label>{{ t('sku') }}<input v-model="form.sku" name="product-sku" maxlength="100" /></label>
           <label>{{ t('stockQuantity') }}<span class="required-mark"> *</span><input v-model="form.stock_quantity" name="stock-quantity" type="number" min="0" max="999999999.999" step="0.001" required /></label>
@@ -451,11 +457,11 @@ onBeforeUnmount(() => {
           <div><p class="eyebrow">{{ t('products') }}</p><h2>{{ saleMode === 'cash' ? t('sellProduct') : t('sellProductOnCredit') }}</h2></div>
           <button class="icon-button" type="button" :aria-label="t('cancel')" :disabled="saving" @click="saleModalOpen = false"><X :size="19" /></button>
         </div>
-        <p class="inline-note">{{ saleProduct.name }} · {{ t('stockQuantity') }}: {{ saleProduct.stock_quantity }}</p>
+        <p class="inline-note">{{ saleProduct.name }} · {{ t('stockQuantity') }}: {{ formatQuantity(saleProduct.stock_quantity) }} {{ saleProduct.unit }}</p>
         <div class="form-grid">
           <label>{{ t('date') }}<input v-model="saleForm.sale_date" name="sale-date" type="date" required /></label>
-          <label>{{ t('quantity') }}<input v-model="saleForm.quantity" name="sale-quantity" type="number" min="0.001" :max="saleProduct.stock_quantity" step="0.001" required /></label>
-          <label>{{ t('productPrice') }}<input v-model="saleForm.unit_price" name="sale-unit-price" type="number" min="0" max="9999999999.99" step="0.01" required /></label>
+          <label>{{ t('quantity') }} ({{ saleProduct.unit }})<input v-model="saleForm.quantity" name="sale-quantity" type="number" min="0.001" :max="saleProduct.stock_quantity" step="0.001" required /></label>
+          <label>{{ t('unitPrice') }}<input v-model="saleForm.unit_price" name="sale-unit-price" type="number" min="0" max="9999999999.99" step="0.01" required /></label>
           <label>{{ saleMode === 'credit' ? t('borrowerName') : t('customerName') }}<input v-model="saleForm.customer_name" name="sale-customer-name" :required="saleMode === 'credit'" maxlength="150" /></label>
           <label v-if="saleMode === 'credit'">{{ t('dueDate') }}<input v-model="saleForm.due_date" name="sale-due-date" type="date" /></label>
         </div>

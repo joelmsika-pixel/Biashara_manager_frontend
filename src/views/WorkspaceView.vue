@@ -10,6 +10,7 @@ import {
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
 import ProductsPanel from '../components/ProductsPanel.vue'
+import { commonUnits } from '../constants/units'
 
 const { t, locale } = useI18n()
 const route = useRoute()
@@ -109,8 +110,9 @@ const fields = {
   sales: [
     { name: 'sale_date', label: 'date', type: 'date', required: true, autoToday: true },
     { name: 'product_name', label: 'productName', type: 'text', required: true },
-    { name: 'product_price', label: 'productPrice', type: 'number', required: true, min: 0.01, step: 0.01 },
+    { name: 'product_price', label: 'unitPrice', type: 'number', required: true, min: 0.01, step: 0.01 },
     { name: 'quantity', label: 'quantity', type: 'number', required: true, min: 0.001, step: 0.001 },
+    { name: 'unit', label: 'unit', type: 'text', required: true, maxlength: 40, defaultValue: 'pieces' },
   ],
   income: [
     { name: 'income_date', label: 'date', type: 'date', required: true, autoToday: true },
@@ -146,7 +148,7 @@ const columns = computed(() => {
     sales: ['sale_date', 'product_name', 'quantity', 'product_price', 'total_amount'],
     income: ['income_date', 'amount', 'description'],
     expenses: ['expense_date', 'amount', 'description'],
-    debts: ['loan_date', 'borrower_name', 'principal', 'description'],
+    debts: ['loan_date', 'borrower_name', 'items', 'principal', 'description'],
     employees: ['name', 'email', 'role', 'is_active'],
     reports: ['type', 'description', 'date', 'customer', 'category', 'amount', 'status', 'employee'],
   }
@@ -160,8 +162,9 @@ function labelFor(field) {
     if (field === 'total_amount' || field === 'paid_amount' || field === 'balance') return field === 'balance' ? t('outstandingBalance') : t('amount')
     if (field === 'principal') return t('amount')
     if (field === 'product_name') return t('productName')
-    if (field === 'product_price') return t('productPrice')
+    if (field === 'product_price') return t('unitPrice')
     if (field === 'quantity') return t('quantity')
+    if (field === 'items') return t('items')
     if (field === 'loan_type') return t('type')
     if (field === 'borrower_name') return t('borrowerName')
     if (field === 'business') return t('businessName')
@@ -185,10 +188,13 @@ function valueFor(row, field) {
   if (field === 'type') return reportTypeLabel(row.type)
   if (field === 'description') return row.description ?? row.notes ?? '—'
   if (field === 'product_name') return row.items?.map((item) => item.item_name).join(', ') || '—'
-  if (field === 'quantity') return row.items?.map((item) => Number(item.quantity).toString()).join(', ') || '—'
+  if (field === 'quantity') return row.items?.map((item) => `${Number(item.quantity).toString()} ${item.unit || 'pieces'}`).join(', ') || '—'
   if (field === 'product_price') {
-    const prices = row.items?.map((item) => formatMoney(item.unit_price))
+    const prices = row.items?.map((item) => `${formatMoney(item.unit_price)} / ${item.unit || 'pieces'}`)
     return prices?.join(', ') || '—'
+  }
+  if (field === 'items') {
+    return row.items?.map((item) => `${item.item_name} × ${Number(item.quantity).toString()} ${item.unit || 'pieces'}`).join(', ') || '—'
   }
   if (field === 'loan_type') return t(row.loan_type === 'loan' ? 'businessLoan' : 'saleDebt')
   if (field === 'customer') return typeof row.customer === 'string' ? row.customer : row.customer?.name || '—'
@@ -328,8 +334,8 @@ async function openForm() {
   restoringEmployee.value = null
   form.value = Object.fromEntries(
     (fields[section.value] || [])
-      .filter((field) => field.autoToday)
-      .map((field) => [field.name, localToday()]),
+      .filter((field) => field.autoToday || field.defaultValue !== undefined)
+      .map((field) => [field.name, field.autoToday ? localToday() : field.defaultValue]),
   )
   if (section.value === 'inbox') {
     try {
@@ -387,6 +393,7 @@ async function submitForm() {
         items: [{
           item_name: form.value.product_name,
           quantity: form.value.quantity,
+          unit: form.value.unit,
           unit_price: form.value.product_price,
         }],
       }
@@ -832,7 +839,8 @@ onMounted(async () => {
             </select>
             <input v-else-if="field.type === 'display'" name="business-name" :value="business?.name || ''" readonly />
             <textarea v-else-if="field.type === 'textarea'" v-model="form[field.name]" :name="field.name" rows="3" :required="field.required"></textarea>
-            <input v-else v-model="form[field.name]" :name="field.name" :type="field.type" :required="field.required || (restoringEmployee && ['password', 'password_confirmation'].includes(field.name))" :min="field.min" :step="field.step" :minlength="field.minlength" :disabled="field.autoToday" :autocomplete="field.type === 'password' ? 'new-password' : undefined" />
+            <input v-else v-model="form[field.name]" :name="field.name" :type="field.type" :list="field.name === 'unit' ? 'sale-unit-suggestions' : undefined" :required="field.required || (restoringEmployee && ['password', 'password_confirmation'].includes(field.name))" :min="field.min" :step="field.step" :minlength="field.minlength" :maxlength="field.maxlength" :disabled="field.autoToday" :autocomplete="field.type === 'password' ? 'new-password' : undefined" />
+            <datalist v-if="field.name === 'unit'" id="sale-unit-suggestions"><option v-for="unit in commonUnits" :key="unit" :value="unit" /></datalist>
           </label>
         </div>
         <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
@@ -845,7 +853,7 @@ onMounted(async () => {
         <div class="modal-heading"><div><p class="eyebrow">{{ business?.name }}</p><h2>{{ saleDetails.sale_number }}</h2></div><button class="icon-button" :aria-label="t('cancel')" @click="saleDetails = null; paymentFormOpen = false"><X :size="19" /></button></div>
         <p class="inline-note">{{ t('salesNote') }}</p>
         <div class="detail-summary"><span>{{ t('businessName') }}<strong>{{ business?.name || '—' }}</strong></span><span>{{ t('date') }}<strong>{{ formatDate(saleDetails.sale_date) }}</strong></span><span>{{ t('amount') }}<strong>{{ formatMoney(saleDetails.total_amount) }}</strong></span><span>{{ t('status') }}<strong>{{ t(saleDetails.status) }}</strong></span></div>
-        <h3>{{ t('items') }}</h3><div v-for="item in saleDetails.items" :key="item.id" class="detail-row"><span>{{ item.item_name }} × {{ item.quantity }}</span><strong>{{ formatMoney(item.line_total) }}</strong></div>
+        <h3>{{ t('items') }}</h3><div v-for="item in saleDetails.items" :key="item.id" class="detail-row"><span>{{ item.item_name }} × {{ Number(item.quantity).toString() }} {{ item.unit || 'pieces' }}</span><strong>{{ formatMoney(item.line_total) }}</strong></div>
         <h3>{{ t('payments') }}</h3><p class="page-subtitle">{{ t('paymentNote') }}</p><div v-if="saleDetails.payments.length"><div v-for="payment in saleDetails.payments" :key="payment.id" class="detail-row"><span>{{ formatDate(payment.payment_date) }} · {{ payment.payment_method }}</span><strong>{{ formatMoney(payment.amount) }}</strong></div></div><p v-else class="state-message">{{ t('empty') }}</p>
         <button v-if="can('payments.create') && Number(saleDetails.balance) > 0" class="button button-primary payment-add" @click="openPaymentForm">{{ t('recordPayment') }}</button>
         <form v-if="paymentFormOpen" class="payment-entry" @submit.prevent="submitPayment">
