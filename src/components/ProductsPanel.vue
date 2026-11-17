@@ -334,10 +334,15 @@ onBeforeUnmount(() => {
 
     <section v-if="categoryStock.length" class="category-stock-grid" :aria-label="t('categoryStock')">
       <article v-for="category in categoryStock" :key="category.category" class="category-stock-card">
-        <h2>{{ category.category }}</h2>
-        <strong>{{ formatQuantity(category.remaining_quantity) }}</strong>
-        <span>{{ t('remainingStock') }}</span>
-        <small>{{ t('productsInCategory', { count: category.product_count }) }}</small>
+        <div class="category-stock-heading">
+          <span class="category-stock-icon"><Package :size="17" /></span>
+          <h2>{{ category.category }}</h2>
+          <span class="category-stock-count">{{ t('productsInCategory', { count: category.product_count }) }}</span>
+        </div>
+        <div class="category-stock-total">
+          <strong>{{ formatQuantity(category.remaining_quantity) }}</strong>
+          <span>{{ t('remainingStock') }}</span>
+        </div>
       </article>
     </section>
 
