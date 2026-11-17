@@ -316,6 +316,11 @@ tbody tr:hover { background: #fcfdfc; }
 .products-search { flex: 1; }
 .products-filter { min-width: 135px; height: 35px; padding: 0 10px; border: 1px solid #e7ece9; border-radius: 7px; background: #fff; color: #64736a; font-size: 11px; }
 .products-add { flex: 0 0 auto; }
+.category-stock-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.category-stock-card { display: grid; gap: 4px; padding: 13px 15px; border: 1px solid var(--line); border-radius: 10px; background: #fff; box-shadow: var(--shadow); }
+.category-stock-card h2 { margin: 0; color: #59685f; font-size: 11px; font-weight: 600; }
+.category-stock-card strong { color: #176f4c; font-size: 20px; font-weight: 700; }
+.category-stock-card > span, .category-stock-card small { color: #839087; font-size: 10px; }
 .product-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
 .product-card { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 11px; background: #fff; box-shadow: var(--shadow); }
 .product-card-image { position: relative; display: grid; height: 188px; place-items: center; overflow: hidden; background: #f2f5f3; }

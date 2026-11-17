@@ -62,7 +62,7 @@ const nav = computed(() => {
         { key: 'expenses', icon: ArrowUpRight, permission: 'expenses.view' },
         { key: 'debts', icon: CircleDollarSign, permission: 'debts.view' },
         { key: 'sales', icon: ShoppingBag, permission: 'sales.view' },
-        { key: 'products', icon: Package, permission: 'products.view' },
+        { key: 'products', label: 'myStore', icon: Package, permission: 'products.view' },
         { key: 'reports', icon: FileBarChart, permission: 'reports.view' },
         { key: 'employees', icon: Users, permission: 'employees.view' },
         { key: 'inbox', icon: Mail },
@@ -72,7 +72,7 @@ const nav = computed(() => {
         { key: 'expenses', icon: ArrowUpRight, permission: 'expenses.view' },
         { key: 'debts', icon: CircleDollarSign, permission: 'debts.view' },
         { key: 'sales', icon: ShoppingBag, permission: 'sales.view' },
-        { key: 'products', icon: Package, permission: 'products.view' },
+        { key: 'products', label: 'myStore', icon: Package, permission: 'products.view' },
         { key: 'inbox', icon: Mail },
       ]
   return [...entries, { key: 'logout', icon: LogOut }]
@@ -102,7 +102,7 @@ function resolveSection(key) {
 
 const titles = {
   dashboard: 'dashboard', sales: 'sales', income: 'income', expenses: 'expenses',
-  debts: 'debts', products: 'products', employees: 'employees', reports: 'reports', inbox: 'inbox', logout: 'logout',
+  debts: 'debts', products: 'myStore', employees: 'employees', reports: 'reports', inbox: 'inbox', logout: 'logout',
 }
 const activeTitle = computed(() => t(titles[section.value] || 'dashboard'))
 const fields = {
@@ -633,7 +633,7 @@ onMounted(async () => {
       <nav class="side-nav">
         <button v-for="item in nav.filter((entry) => can(entry.permission))" :key="item.key" class="nav-item" :class="{ 'nav-item-active': section === item.key }" @click="selectSection(item.key)">
           <component :is="item.icon" :size="18" stroke-width="1.8" />
-          <span>{{ t(item.key) }}</span>
+          <span>{{ t(item.label || item.key) }}</span>
           <span v-if="item.key === 'debts' && dashboard.debt_count" class="nav-count">{{ dashboard.debt_count }}</span>
         </button>
       </nav>

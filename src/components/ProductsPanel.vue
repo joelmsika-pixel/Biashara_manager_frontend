@@ -16,6 +16,7 @@ const props = defineProps({
 const { t } = useI18n()
 const products = ref([])
 const categories = ref([])
+const categoryStock = ref([])
 const pagination = ref(null)
 const search = ref('')
 const categoryFilter = ref('')
@@ -119,6 +120,7 @@ async function loadProducts() {
     if (currentRequest !== requestId) return
     products.value = data.data || []
     categories.value = data.categories || []
+    categoryStock.value = data.category_stock || []
     pagination.value = data.meta || null
   } catch (requestError) {
     if (currentRequest !== requestId) return
@@ -126,6 +128,7 @@ async function loadProducts() {
       ? t('forbidden')
       : requestError.response?.data?.message || t('errorGeneric')
     products.value = []
+    categoryStock.value = []
     pagination.value = null
   } finally {
     if (currentRequest === requestId) loading.value = false
@@ -273,6 +276,10 @@ function formatPrice(value) {
   }).format(Number(value || 0))
 }
 
+function formatQuantity(value) {
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 }).format(Number(value || 0))
+}
+
 watch(
   [() => props.businessUrl, search, categoryFilter, stockFilter, page],
   () => {
@@ -324,6 +331,15 @@ onBeforeUnmount(() => {
         <Plus :size="17" />{{ t('addProduct') }}
       </button>
     </div>
+
+    <section v-if="categoryStock.length" class="category-stock-grid" :aria-label="t('categoryStock')">
+      <article v-for="category in categoryStock" :key="category.category" class="category-stock-card">
+        <h2>{{ category.category }}</h2>
+        <strong>{{ formatQuantity(category.remaining_quantity) }}</strong>
+        <span>{{ t('remainingStock') }}</span>
+        <small>{{ t('productsInCategory', { count: category.product_count }) }}</small>
+      </article>
+    </section>
 
     <p v-if="error" class="inline-error" role="alert">{{ error }}</p>
     <p v-if="cleanupWarning" class="inline-note" role="status">{{ cleanupWarning }}</p>
