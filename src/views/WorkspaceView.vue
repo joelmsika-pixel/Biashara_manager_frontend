@@ -82,8 +82,8 @@ function can(permission) {
   const member = membership.value
   if (!member?.is_active) return false
   if (!permission) return true
+  if (member.role === 'employee' && ['products.view', 'products.create'].includes(permission)) return true
   if (member.role === 'employee' && ['debts.view', 'debts.create'].includes(permission)) return true
-  if (member.role === 'employee' && permission === 'products.view' && member.permissions?.includes('sales.create')) return true
   if (member.role === 'owner') return true
   return Array.isArray(member.permissions) && member.permissions.includes(permission)
 }
