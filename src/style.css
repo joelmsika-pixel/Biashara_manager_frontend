@@ -259,6 +259,10 @@ tbody tr:hover { background: #fcfdfc; }
   .form-span { grid-column: auto; }
   .modal-backdrop { padding: 10px; }
   .modal-card { max-height: calc(100vh - 20px); padding: 16px; }
+  .products-toolbar { flex-wrap: wrap; }
+  .products-search { flex-basis: 100%; }
+  .pc-inspection-actions { align-items: flex-start; flex-direction: column; }
+  .pc-report-history-item { align-items: stretch; flex-direction: column; }
 }
 @media print {
   @page { size: A4 portrait; margin: 14mm 13mm 18mm; }
@@ -349,6 +353,31 @@ tbody tr:hover { background: #fcfdfc; }
 .product-card-details span, .product-sku { color: #839087; font-size: 10px; }
 .product-sku { margin: 9px 0 0; }
 .product-modal { width: min(100%, 680px); }
+.pc-inspection-modal { width: min(100%, 900px); }
+.pc-inspection-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.pc-inspection-actions .inline-note { margin: 0; }
+.pc-inspection-device-list { display: grid; max-height: 58vh; gap: 12px; overflow-y: auto; padding: 2px 3px 2px 0; }
+.pc-inspection-device { padding: 14px; border: 1px solid #e3ebe5; border-radius: 10px; background: #fbfdfb; }
+.pc-inspection-device-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.pc-inspection-device-heading h3 { margin: 0; color: #26372d; font-size: 13px; }
+.pc-inspection-device h4 { margin: 14px 0 9px; color: #176f4c; font-size: 11px; }
+.pc-inspection-device-heading + h4 { margin-top: 0; }
+.pc-health-input { display: grid; gap: 4px; }
+.pc-health-input > span { min-height: 12px; color: #718077; font-size: 9px; font-weight: 500; }
+.pc-issue-field { display: grid; gap: 6px; margin-top: 14px; color: #59685f; font-size: 10px; font-weight: 650; }
+.pc-issue-field textarea { min-height: 72px; resize: vertical; padding: 8px 10px; border: 1px solid #e1e8e3; border-radius: 7px; color: #314139; font-size: 12px; }
+.pc-report-progress { display: grid; gap: 6px; margin-top: 14px; color: #617167; font-size: 10px; }
+.pc-report-progress > div { display: flex; justify-content: space-between; }
+.pc-report-progress progress { width: 100%; height: 7px; accent-color: #176f4c; }
+.pc-report-history { display: grid; max-height: 58vh; gap: 8px; overflow-y: auto; }
+.pc-report-history-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #e7ece9; border-radius: 8px; }
+.pc-report-history-item > div { display: grid; min-width: 0; gap: 4px; }
+.pc-report-history-item strong { color: #35473c; font-size: 11px; }
+.pc-report-history-item span { color: #77857c; font-size: 10px; overflow-wrap: anywhere; }
+.pc-report-history-item .button { flex: 0 0 auto; }
+.product-template-picker { display: grid; justify-items: start; gap: 7px; margin-bottom: 13px; }
+.product-template-options { display: grid; width: min(100%, 220px); }
+.product-template-option { justify-content: flex-start; }
 .product-image-section { display: grid; gap: 10px; margin-top: 17px; }
 .product-image-label { display: grid; gap: 4px; color: #59685f; font-size: 11px; font-weight: 650; }
 .product-image-label small { color: #89958e; font-size: 9px; font-weight: 450; line-height: 1.5; }

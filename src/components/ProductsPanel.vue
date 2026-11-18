@@ -1,9 +1,10 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ImagePlus, Package, Pencil, Plus, Search, Trash2, Upload, X } from '@lucide/vue'
+import { ClipboardList, ImagePlus, Package, Pencil, Plus, Search, Trash2, Upload, X } from '@lucide/vue'
 import api from '../services/api'
 import { commonUnits } from '../constants/units'
+import PcInspectionReports from './PcInspectionReports.vue'
 
 const props = defineProps({
   businessUrl: { type: String, required: true },
@@ -28,6 +29,9 @@ const error = ref('')
 const cleanupWarning = ref('')
 const modalOpen = ref(false)
 const saleModalOpen = ref(false)
+const pcInspectionOpen = ref(false)
+const inspectionStartView = ref('new')
+const templateDropdownOpen = ref(false)
 const saleMode = ref('cash')
 const saleProduct = ref(null)
 const saleForm = ref({})
@@ -140,6 +144,7 @@ async function loadProducts() {
 function openCreate() {
   editingProduct.value = null
   form.value = blankForm()
+  templateDropdownOpen.value = false
   retainedImages.value = []
   releaseSelectedFiles()
   formError.value = ''
@@ -149,6 +154,7 @@ function openCreate() {
 
 function openEdit(product) {
   editingProduct.value = product
+  templateDropdownOpen.value = false
   form.value = {
     name: product.name || '',
     description: product.description || '',
@@ -166,9 +172,29 @@ function openEdit(product) {
   modalOpen.value = true
 }
 
+function applyProductTemplate(name) {
+  templateDropdownOpen.value = false
+  if (name === 'PC') {
+    modalOpen.value = false
+    releaseSelectedFiles()
+    retainedImages.value = []
+    formError.value = ''
+    inspectionStartView.value = 'new'
+    pcInspectionOpen.value = true
+    return
+  }
+  form.value.name = name
+}
+
+function openPcInspectionHistory() {
+  inspectionStartView.value = 'history'
+  pcInspectionOpen.value = true
+}
+
 function closeModal() {
   if (saving.value) return
   modalOpen.value = false
+  templateDropdownOpen.value = false
   releaseSelectedFiles()
   retainedImages.value = []
 }
@@ -334,6 +360,9 @@ onBeforeUnmount(() => {
       <button v-if="canCreate" class="button button-primary products-add" type="button" @click="openCreate">
         <Plus :size="17" />{{ t('addProduct') }}
       </button>
+      <button class="button button-secondary products-add" type="button" @click="openPcInspectionHistory">
+        <ClipboardList :size="17" />{{ t('pcInspectionHistory') }}
+      </button>
     </div>
 
     <section v-if="categoryStock.length" class="category-stock-grid" :aria-label="t('categoryStock')">
@@ -404,6 +433,22 @@ onBeforeUnmount(() => {
           <div><p class="eyebrow">{{ t('products') }}</p><h2>{{ editingProduct ? t('editProduct') : t('addProduct') }}</h2></div>
           <button class="icon-button" type="button" :aria-label="t('cancel')" :disabled="saving" @click="closeModal"><X :size="19" /></button>
         </div>
+        <div v-if="!editingProduct" class="product-template-picker">
+          <button
+            class="button button-secondary"
+            type="button"
+            :aria-expanded="templateDropdownOpen"
+            aria-controls="product-template-options"
+            @click="templateDropdownOpen = !templateDropdownOpen"
+          >
+            {{ t('useTemplateProduct') }}
+          </button>
+          <div v-show="templateDropdownOpen" id="product-template-options" class="product-template-options">
+            <button class="button button-secondary product-template-option" type="button" @click="applyProductTemplate('PC')">
+              PC
+            </button>
+          </div>
+        </div>
         <div class="form-grid">
           <label>{{ t('productName') }}<span class="required-mark"> *</span><input v-model="form.name" name="product-name" maxlength="150" required /></label>
           <label>{{ t('category') }}<span class="required-mark"> *</span><input v-model="form.category" name="product-category" list="product-categories" maxlength="100" required /><datalist id="product-categories"><option v-for="category in categories" :key="category" :value="category" /></datalist></label>
@@ -473,5 +518,13 @@ onBeforeUnmount(() => {
         </div>
       </form>
     </div>
+
+    <PcInspectionReports
+      v-if="pcInspectionOpen"
+      :business-url="businessUrl"
+      :can-create="canCreate"
+      :start-view="inspectionStartView"
+      @close="pcInspectionOpen = false"
+    />
   </section>
 </template>
