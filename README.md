@@ -57,6 +57,10 @@ frontend. A business owner creates employee accounts from the Employees area.
    signed-in user's business memberships, selects a business, and requests
    that business's data when the active section or its filters change.
 
+The app signs out after 12 hours without user activity. Activity extends the
+server-side idle expiration; refresh tokens still retain their configured
+maximum lifetime.
+
 The local API URL fallback is `http://localhost:4000/api`. Set
 `VITE_API_URL` in `.env.local` when using a different API. Values prefixed
 with `VITE_` are included in browser code; never put passwords, API secrets,

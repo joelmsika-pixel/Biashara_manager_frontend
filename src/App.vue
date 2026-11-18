@@ -5,7 +5,7 @@ import { RouterView, useRouter } from 'vue-router'
 import api from './services/api'
 import { useAuthStore } from './stores/auth'
 
-const idleTimeoutMs = 15 * 60 * 1000
+const idleTimeoutMs = 12 * 60 * 60 * 1000
 const sessionActivityDebounceMs = 1000
 const sessionHeartbeatIntervalMs = 60 * 1000
 const activityEvents = ['pointerdown', 'keydown', 'touchstart', 'scroll']
