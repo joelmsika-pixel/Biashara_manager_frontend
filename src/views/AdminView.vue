@@ -2,8 +2,8 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  Building2, BriefcaseBusiness, CircleCheck, CirclePause, LogOut, Plus, RefreshCw,
-  Search, Shield, UserRound,
+  AlertTriangle, Archive, Building2, BriefcaseBusiness, CircleCheck, CirclePause, LogOut, Plus,
+  RefreshCw, Search, Shield, Trash2, UserRound, X,
 } from '@lucide/vue'
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
@@ -119,7 +119,6 @@ function removeBusiness(item) {
 async function confirmRemoveBusiness() {
   const item = removeBusinessTarget.value
   if (!item) return
-  if (removeBusinessData.value && !window.confirm(`Permanently delete ${item.name} and all its business data? This cannot be undone.`)) return
   error.value = ''
   notice.value = ''
   saving.value = true
@@ -257,10 +256,10 @@ onMounted(async () => {
                 <td>
                   <div class="admin-actions-cell">
                     <button v-if="item.deleted_at" class="admin-action-button restore" @click="restoreBusiness(item)">Restore</button>
-                    <template v-else>
-                      <button class="admin-action-button" :class="item.status === 'active' ? 'suspend' : 'activate'" @click="toggleStatus(item)">{{ item.status === 'active' ? 'Suspend' : 'Activate' }}</button>
-                      <button class="admin-action-button remove" @click="removeBusiness(item)">Remove</button>
-                    </template>
+                      <template v-else>
+                        <button class="admin-action-button" :class="item.status === 'active' ? 'suspend' : 'activate'" @click="toggleStatus(item)">{{ item.status === 'active' ? 'Suspend' : 'Activate' }}</button>
+                        <button class="admin-action-button remove" @click="removeBusiness(item)"><Trash2 :size="13" />Remove</button>
+                      </template>
                   </div>
                 </td>
               </tr>
@@ -303,20 +302,32 @@ onMounted(async () => {
     </div>
 
     <div v-if="removeBusinessTarget" class="modal-backdrop" @click.self="removeBusinessTarget = null">
-      <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="remove-business-title">
-        <div class="panel-heading">
-          <h2 id="remove-business-title">Remove {{ removeBusinessTarget.name }}?</h2>
-          <button class="icon-button" type="button" aria-label="Close" @click="removeBusinessTarget = null">×</button>
+      <section class="modal-card admin-dialog" role="dialog" aria-modal="true" aria-labelledby="remove-business-title">
+        <div class="admin-dialog-heading">
+          <span class="admin-dialog-icon" :class="{ destructive: removeBusinessData }"><Trash2 v-if="removeBusinessData" :size="20" /><Archive v-else :size="20" /></span>
+          <button class="admin-dialog-close" type="button" aria-label="Close" :disabled="saving" @click="removeBusinessTarget = null"><X :size="18" /></button>
+          <p class="admin-dialog-kicker">Business account</p>
+          <h2 id="remove-business-title">{{ removeBusinessData ? 'Permanently delete business?' : 'Remove business?' }}</h2>
+          <p class="admin-dialog-description"><strong>{{ removeBusinessTarget.name }}</strong> · Choose what happens to its saved records.</p>
         </div>
-        <p class="page-subtitle">Choose what to do with this business and its owner's records.</p>
-        <div class="permission-grid" role="radiogroup" aria-label="Business data removal options">
-          <label class="permission-option"><input v-model="removeBusinessData" type="radio" name="business-data-removal" :value="false"> Remove the business but keep its data (you can restore it later)</label>
-          <label class="permission-option"><input v-model="removeBusinessData" type="radio" name="business-data-removal" :value="true"> Permanently delete the business and all its data</label>
+        <div class="admin-removal-options" role="radiogroup" aria-label="Business data removal options">
+          <label class="admin-removal-option" :class="{ selected: !removeBusinessData }">
+            <input v-model="removeBusinessData" type="radio" name="business-data-removal" :value="false">
+            <span class="admin-removal-option-icon"><Archive :size="17" /></span>
+            <span><strong>Remove and keep data</strong><small>Business access is removed. You can restore the business later.</small></span>
+            <span class="admin-radio-mark"></span>
+          </label>
+          <label class="admin-removal-option destructive" :class="{ selected: removeBusinessData }">
+            <input v-model="removeBusinessData" type="radio" name="business-data-removal" :value="true">
+            <span class="admin-removal-option-icon"><Trash2 :size="17" /></span>
+            <span><strong>Permanently delete everything</strong><small>Business records and product images will be deleted and cannot be restored.</small></span>
+            <span class="admin-radio-mark"></span>
+          </label>
         </div>
-        <p v-if="removeBusinessData" class="form-error" role="alert">This permanently deletes the business's records and product images. The owner's account is deleted only if they have no other business memberships. This cannot be undone.</p>
-        <div class="heading-actions">
-          <button class="button button-secondary" type="button" @click="removeBusinessTarget = null">Cancel</button>
-          <button class="button button-primary" type="button" :disabled="saving" @click="confirmRemoveBusiness">{{ saving ? 'Removing…' : 'Remove business' }}</button>
+        <div v-if="removeBusinessData" class="admin-delete-warning" role="alert"><AlertTriangle :size="16" /><span>The owner's account is deleted only if they have no other business memberships. This action cannot be undone.</span></div>
+        <div class="admin-dialog-actions">
+          <button class="button button-secondary" type="button" :disabled="saving" @click="removeBusinessTarget = null">Cancel</button>
+          <button class="button admin-confirm-remove" :class="{ destructive: removeBusinessData }" type="button" :disabled="saving" @click="confirmRemoveBusiness"><Trash2 v-if="removeBusinessData" :size="15" /><Archive v-else :size="15" />{{ saving ? 'Removing…' : removeBusinessData ? 'Permanently delete' : 'Remove business' }}</button>
         </div>
       </section>
     </div>
