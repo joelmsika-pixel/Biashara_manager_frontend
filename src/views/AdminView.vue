@@ -2,14 +2,15 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  AlertTriangle, Archive, Building2, BriefcaseBusiness, CircleCheck, CirclePause, LogOut, Plus,
-  RefreshCw, Search, Shield, Trash2, UserRound, X,
+  AlertTriangle, Archive, Building2, BriefcaseBusiness, CircleCheck, CirclePause, LogOut, Moon, Plus,
+  RefreshCw, Search, Shield, Sun, Trash2, UserRound, X,
 } from '@lucide/vue'
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
 const router = useRouter()
+const darkTheme = ref(localStorage.getItem('admin_theme') === 'dark')
 const businesses = ref([])
 const search = ref('')
 const page = ref(1)
@@ -27,6 +28,10 @@ const removeBusinessData = ref(false)
 let businessLoadRequestId = 0
 const activeOnPage = computed(() => businesses.value.filter((item) => !item.deleted_at && item.status === 'active').length)
 const suspendedOnPage = computed(() => businesses.value.filter((item) => !item.deleted_at && item.status !== 'active').length)
+
+watch(darkTheme, (enabled) => {
+  localStorage.setItem('admin_theme', enabled ? 'dark' : 'light')
+})
 
 async function loadBusinesses() {
   const requestId = ++businessLoadRequestId
@@ -164,7 +169,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="admin-page">
+  <main class="admin-page" :class="{ 'admin-dark': darkTheme }">
     <header class="admin-topbar">
       <div class="admin-brand" aria-label="Platform administration">
         <span class="admin-brand-mark"><BriefcaseBusiness :size="20" /></span>
@@ -173,6 +178,9 @@ onMounted(async () => {
       <div class="admin-account">
         <span class="admin-account-avatar">{{ auth.user?.name?.slice(0, 1)?.toUpperCase() || 'A' }}</span>
         <span class="admin-account-name">{{ auth.user?.name || 'Administrator' }}</span>
+        <button class="admin-theme-toggle" type="button" :aria-label="darkTheme ? 'Switch to light theme' : 'Switch to dark theme'" :title="darkTheme ? 'Switch to light theme' : 'Switch to dark theme'" @click="darkTheme = !darkTheme">
+          <Sun v-if="darkTheme" :size="16" /><Moon v-else :size="16" /><span>{{ darkTheme ? 'Light' : 'Dark' }}</span>
+        </button>
         <button class="button button-secondary admin-signout" @click="logout"><LogOut :size="16" /><span>Sign out</span></button>
       </div>
     </header>
