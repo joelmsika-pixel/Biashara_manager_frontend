@@ -179,7 +179,7 @@ onMounted(async () => {
         <span class="admin-account-avatar">{{ auth.user?.name?.slice(0, 1)?.toUpperCase() || 'A' }}</span>
         <span class="admin-account-name">{{ auth.user?.name || 'Administrator' }}</span>
         <button class="admin-theme-toggle" type="button" :aria-label="darkTheme ? 'Switch to light theme' : 'Switch to dark theme'" :title="darkTheme ? 'Switch to light theme' : 'Switch to dark theme'" @click="darkTheme = !darkTheme">
-          <Sun v-if="darkTheme" :size="16" /><Moon v-else :size="16" /><span>{{ darkTheme ? 'Light' : 'Dark' }}</span>
+          <Sun v-if="darkTheme" :size="16" /><Moon v-else :size="16" />
         </button>
         <button class="button button-secondary admin-signout" @click="logout"><LogOut :size="16" /><span>Sign out</span></button>
       </div>

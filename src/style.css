@@ -428,7 +428,7 @@ tbody tr:hover { background: #fcfdfc; }
 .admin-account { display: flex; align-items: center; gap: 10px; }
 .admin-account-avatar { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #dcebe1; border-radius: 50%; background: #edf6ef; color: #17613e; font-size: 12px; font-weight: 750; }
 .admin-account-name { max-width: 200px; overflow: hidden; color: #40574a; font-size: 11px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
-.admin-theme-toggle { min-height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; border: 1px solid #e1e9e3; border-radius: 8px; background: #f8faf8; color: #536b5b; cursor: pointer; font-size: 9px; font-weight: 700; }
+.admin-theme-toggle { width: 34px; min-width: 34px; min-height: 34px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 1px solid #e1e9e3; border-radius: 9px; background: #f8faf8; color: #536b5b; cursor: pointer; }
 .admin-theme-toggle:hover { border-color: #bed6c4; background: #eef6f0; }
 .admin-signout { min-height: 35px; margin-left: 9px; }
 .admin-content { width: min(100% - 48px, 1280px); margin: 0 auto; padding: 14px 0 20px; }
@@ -792,6 +792,42 @@ tbody tr:hover { background: #fcfdfc; }
 @media (max-width: 600px) {
   .admin-theme-toggle { width: 32px; min-width: 32px; min-height: 32px; gap: 0; padding: 0; }
   .admin-theme-toggle span { display: none; }
+}
+@media (max-width: 600px) {
+  .admin-page:not(.admin-dark) .admin-table tbody tr:not(.admin-state-row) {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-color: #d7e6da;
+    background: linear-gradient(125deg, #fff 0%, #fbfefb 66%, #edf6ef 100%);
+    box-shadow: 0 4px 12px rgb(34 86 48 / 8%);
+  }
+  .admin-page:not(.admin-dark) .admin-table tbody tr:not(.admin-state-row)::before {
+    position: absolute;
+    z-index: -1;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 4px;
+    background: linear-gradient(180deg, #2c8050, #9bc9a4);
+    content: "";
+  }
+  .admin-page:not(.admin-dark) .admin-table tbody tr:not(.admin-state-row)::after {
+    position: absolute;
+    z-index: -1;
+    top: -34px;
+    right: -24px;
+    width: 90px;
+    height: 90px;
+    border: 1px solid rgb(56 127 72 / 18%);
+    border-radius: 50%;
+    background: rgb(72 143 84 / 6%);
+    content: "";
+  }
+  .admin-page:not(.admin-dark) .admin-table tbody tr:not(.admin-state-row):hover {
+    border-color: #bdd9c3;
+    background: linear-gradient(125deg, #fff 0%, #f8fcf8 66%, #e8f3ea 100%);
+  }
 }
 @media (max-width: 600px) {
   .admin-dark .admin-table tbody tr:not(.admin-state-row) {
