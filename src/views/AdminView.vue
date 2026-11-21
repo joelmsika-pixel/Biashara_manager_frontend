@@ -1,13 +1,17 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { BriefcaseBusiness, LogOut, Plus, RefreshCw, Shield } from '@lucide/vue'
+import {
+  Building2, BriefcaseBusiness, CircleCheck, CirclePause, LogOut, Plus, RefreshCw,
+  Search, Shield, UserRound,
+} from '@lucide/vue'
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
 const router = useRouter()
 const businesses = ref([])
+const search = ref('')
 const page = ref(1)
 const pagination = ref(null)
 const loading = ref(false)
@@ -21,13 +25,15 @@ const form = ref({})
 const removeBusinessTarget = ref(null)
 const removeBusinessData = ref(false)
 let businessLoadRequestId = 0
+const activeOnPage = computed(() => businesses.value.filter((item) => !item.deleted_at && item.status === 'active').length)
+const suspendedOnPage = computed(() => businesses.value.filter((item) => !item.deleted_at && item.status !== 'active').length)
 
 async function loadBusinesses() {
   const requestId = ++businessLoadRequestId
   loading.value = true
   error.value = ''
   try {
-    const { data } = await api.get('/admin/businesses', { params: { page: page.value, per_page: 10, include_deleted: includeDeleted.value } })
+    const { data } = await api.get('/admin/businesses', { params: { page: page.value, per_page: 10, include_deleted: includeDeleted.value, search: search.value.trim() || undefined } })
     if (requestId !== businessLoadRequestId) return
     const lastPage = Math.max(1, Number(data.last_page) || 1)
     if (page.value > lastPage) {
@@ -61,6 +67,11 @@ function toggleDeleted() {
   page.value = 1
   loadBusinesses()
 }
+
+watch(search, () => {
+  page.value = 1
+  loadBusinesses()
+})
 
 function openCreate() {
   formError.value = ''
@@ -154,58 +165,117 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="content" style="max-width: 1200px; min-height: 100vh">
-    <header class="page-heading">
-      <div>
-        <p class="eyebrow"><Shield :size="14" /> Platform administration</p>
-        <h1>Businesses</h1>
-        <p class="page-subtitle">Manage business accounts and their owners.</p>
+  <main class="admin-page">
+    <header class="admin-topbar">
+      <div class="admin-brand" aria-label="Platform administration">
+        <span class="admin-brand-mark"><BriefcaseBusiness :size="20" /></span>
+        <span><strong>Bizikua</strong><small>PLATFORM ADMINISTRATION</small></span>
       </div>
-      <div class="heading-actions">
-        <button class="button button-secondary" :disabled="loading" @click="toggleDeleted">{{ includeDeleted ? 'Hide removed' : 'Show removed' }}</button>
-        <button class="button button-secondary" :disabled="loading" @click="loadBusinesses"><RefreshCw :size="16" /> Refresh</button>
-        <button class="button button-primary" @click="openCreate"><Plus :size="16" /> Create business</button>
-        <button class="button button-secondary" @click="logout"><LogOut :size="16" /> Sign out</button>
+      <div class="admin-account">
+        <span class="admin-account-avatar">{{ auth.user?.name?.slice(0, 1)?.toUpperCase() || 'A' }}</span>
+        <span class="admin-account-name">{{ auth.user?.name || 'Administrator' }}</span>
+        <button class="button button-secondary admin-signout" @click="logout"><LogOut :size="16" /><span>Sign out</span></button>
       </div>
     </header>
 
-    <div v-if="error" class="notice-banner" role="alert">{{ error }}</div>
-    <div v-if="notice" class="notice-banner" role="status">{{ notice }}</div>
-    <section class="panel-card">
-      <div class="panel-heading">
-        <div class="card-title-row"><span class="metric-icon green"><BriefcaseBusiness :size="17" /></span><strong>All businesses</strong></div>
-        <span>{{ pagination ? pagination.total : businesses.length }} listed</span>
-      </div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead><tr><th>Business</th><th>Owner</th><th>Currency</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody>
-            <tr v-if="loading"><td colspan="5">Loading businesses…</td></tr>
-            <tr v-else-if="!businesses.length"><td colspan="5">No businesses yet.</td></tr>
-            <tr v-for="item in businesses" :key="item.id">
-              <td><strong>{{ item.name }}</strong><small>{{ item.business_type || '—' }}</small></td>
-              <td>{{ item.users?.[0]?.name || '—' }}<small>{{ item.users?.[0]?.email || '' }}</small></td>
-              <td>{{ item.currency }}</td>
-              <td><span class="status-badge" :class="item.deleted_at ? 'suspended' : item.status">{{ item.deleted_at ? 'Removed' : item.status }}</span></td>
-              <td>
-                <button v-if="item.deleted_at" class="button button-secondary" @click="restoreBusiness(item)">Restore</button>
-                <template v-else>
-                  <button class="button button-secondary" @click="toggleStatus(item)">{{ item.status === 'active' ? 'Suspend' : 'Activate' }}</button>
-                  <button class="button button-secondary" @click="removeBusiness(item)">Remove</button>
-                </template>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div v-if="pagination && pagination.last_page > 1" class="pagination">
-        <span>Page {{ pagination.current_page }} of {{ pagination.last_page }}</span>
+    <div class="admin-content">
+      <section class="admin-welcome">
         <div>
-          <button class="button button-secondary" :disabled="page <= 1 || loading" @click="changePage(page - 1)">Previous</button>
-          <button class="button button-secondary" :disabled="page >= pagination.last_page || loading" @click="changePage(page + 1)">Next</button>
+          <p class="admin-eyebrow"><Shield :size="14" /> Administration</p>
+          <h1>Business accounts</h1>
+          <p>Manage businesses, owners, and platform access from one place.</p>
         </div>
+        <div class="admin-welcome-icon"><Building2 :size="31" /></div>
+      </section>
+
+      <div v-if="error" class="admin-alert" role="alert">{{ error }}</div>
+      <div v-if="notice" class="admin-alert success" role="status">{{ notice }}</div>
+
+      <section class="admin-stats" aria-label="Business account overview">
+        <article class="admin-stat-card">
+          <span class="admin-stat-icon"><Building2 :size="18" /></span>
+          <span class="admin-stat-label">Total businesses</span>
+          <strong>{{ pagination ? pagination.total : businesses.length }}</strong>
+          <small>Across the platform</small>
+        </article>
+        <article class="admin-stat-card">
+          <span class="admin-stat-icon active"><CircleCheck :size="18" /></span>
+          <span class="admin-stat-label">Active on this page</span>
+          <strong>{{ activeOnPage }}</strong>
+          <small>Business accounts in good standing</small>
+        </article>
+        <article class="admin-stat-card">
+          <span class="admin-stat-icon paused"><CirclePause :size="18" /></span>
+          <span class="admin-stat-label">Suspended on this page</span>
+          <strong>{{ suspendedOnPage }}</strong>
+          <small>Access currently paused</small>
+        </article>
+      </section>
+
+      <section class="admin-business-panel">
+        <div class="admin-panel-heading">
+          <div class="admin-panel-title">
+            <span class="admin-panel-icon"><BriefcaseBusiness :size="18" /></span>
+            <div><h2>{{ includeDeleted ? 'All businesses, including removed' : 'All businesses' }}</h2><p>Review business profiles and manage their account status.</p></div>
+          </div>
+          <span class="admin-results">{{ pagination ? pagination.total : businesses.length }} {{ pagination?.total === 1 ? 'business' : 'businesses' }}</span>
+        </div>
+
+        <div class="admin-toolbar">
+          <label class="admin-search">
+            <Search :size="17" />
+            <input v-model="search" type="search" placeholder="Search business or owner…" aria-label="Search businesses or owners" />
+          </label>
+          <div class="admin-toolbar-actions">
+            <button class="button button-secondary" :disabled="loading" @click="toggleDeleted">{{ includeDeleted ? 'Hide removed' : 'Show removed' }}</button>
+            <button class="button button-secondary admin-refresh" :disabled="loading" @click="loadBusinesses"><RefreshCw :size="16" /><span>Refresh</span></button>
+            <button class="button button-primary" @click="openCreate"><Plus :size="16" /> Create business</button>
+          </div>
+        </div>
+
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead><tr><th>Business</th><th>Owner</th><th>Currency</th><th>Status</th><th class="admin-actions-heading">Actions</th></tr></thead>
+            <tbody>
+              <tr v-if="loading"><td colspan="5"><div class="admin-empty"><span class="admin-loading-dot"></span>Loading businesses…</div></td></tr>
+              <tr v-else-if="!businesses.length"><td colspan="5"><div class="admin-empty"><Building2 :size="22" />{{ search ? 'No businesses match your search.' : 'No businesses yet.' }}</div></td></tr>
+              <tr v-for="item in businesses" :key="item.id">
+                <td>
+                  <div class="admin-business-cell">
+                    <span class="admin-business-avatar">{{ item.name?.slice(0, 1)?.toUpperCase() || 'B' }}</span>
+                    <span class="admin-business-text"><strong>{{ item.name }}</strong><small>{{ item.business_type || 'Business account' }}</small></span>
+                  </div>
+                </td>
+                <td>
+                  <div class="admin-owner-cell">
+                    <span class="admin-owner-icon"><UserRound :size="16" /></span>
+                    <span class="admin-owner-text"><strong>{{ item.users?.[0]?.name || 'Owner not listed' }}</strong><small>{{ item.users?.[0]?.email || '—' }}</small></span>
+                  </div>
+                </td>
+                <td><span class="admin-currency">{{ item.currency || '—' }}</span></td>
+                <td><span class="admin-status" :class="item.deleted_at ? 'removed' : item.status"><i></i>{{ item.deleted_at ? 'Removed' : item.status }}</span></td>
+                <td>
+                  <div class="admin-actions-cell">
+                    <button v-if="item.deleted_at" class="admin-action-button restore" @click="restoreBusiness(item)">Restore</button>
+                    <template v-else>
+                      <button class="admin-action-button" :class="item.status === 'active' ? 'suspend' : 'activate'" @click="toggleStatus(item)">{{ item.status === 'active' ? 'Suspend' : 'Activate' }}</button>
+                      <button class="admin-action-button remove" @click="removeBusiness(item)">Remove</button>
+                    </template>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div v-if="pagination && pagination.last_page > 1" class="admin-pagination">
+          <span>Showing page <strong>{{ pagination.current_page }}</strong> of <strong>{{ pagination.last_page }}</strong></span>
+          <div>
+            <button class="button button-secondary" :disabled="page <= 1 || loading" @click="changePage(page - 1)">Previous</button>
+            <button class="button button-secondary" :disabled="page >= pagination.last_page || loading" @click="changePage(page + 1)">Next</button>
+          </div>
+        </div>
+      </section>
       </div>
-    </section>
 
     <div v-if="formOpen" class="modal-backdrop" @click.self="formOpen = false">
       <form class="modal-card" @submit.prevent="createBusiness">
