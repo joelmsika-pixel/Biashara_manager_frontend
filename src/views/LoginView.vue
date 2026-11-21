@@ -2,14 +2,15 @@
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { BriefcaseBusiness, Eye, EyeOff, Languages, LockKeyhole } from '@lucide/vue'
+import { BriefcaseBusiness, Eye, EyeOff, LockKeyhole } from '@lucide/vue'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
+import LanguageSwitcher from '../components/LanguageSwitcher.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const mode = ref(route.name === 'reset-password' ? 'reset' : 'login')
 const email = ref(String(route.query.email || ''))
 const password = ref('')
@@ -136,17 +137,11 @@ async function submit() {
   }
 }
 
-function toggleLanguage() {
-  locale.value = locale.value === 'en' ? 'sw' : 'en'
-  localStorage.setItem('language', locale.value)
-}
 </script>
 
 <template>
   <main class="login-shell">
-    <button class="language-switch" type="button" @click="toggleLanguage">
-      <Languages :size="17" /> {{ t('language') }} · {{ locale === 'en' ? 'EN' : 'SW' }}
-    </button>
+    <LanguageSwitcher />
     <section class="login-card">
       <div class="brand-mark"><BriefcaseBusiness :size="22" /></div>
       <p class="eyebrow">{{ t('brand') }}</p>

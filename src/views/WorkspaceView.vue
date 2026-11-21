@@ -1,6 +1,7 @@
 frontend<script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import LanguageSwitcher from '../components/LanguageSwitcher.vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   Activity, ArrowDownLeft, ArrowUpRight, BriefcaseBusiness, ChevronDown, CircleDollarSign,
@@ -541,11 +542,6 @@ async function logout() {
   }
 }
 
-function switchLanguage() {
-  locale.value = locale.value === 'en' ? 'sw' : 'en'
-  localStorage.setItem('language', locale.value)
-}
-
 function changeReportPeriod(period) {
   reportPeriod.value = period
   const end = new Date()
@@ -684,7 +680,7 @@ onMounted(async () => {
         <button class="icon-button mobile-menu" :aria-label="t('brand')" @click="mobileMenuOpen = true"><Menu :size="20" /></button>
         <div class="breadcrumbs"><span>{{ t('brand') }}</span><span class="crumb-separator">/</span><strong>{{ activeTitle }}</strong></div>
         <div class="topbar-actions">
-          <button class="language-button" type="button" @click="switchLanguage">{{ locale === 'en' ? 'EN' : 'SW' }} <ChevronDown :size="14" /></button>
+          <LanguageSwitcher />
           <div class="topbar-divider"></div>
           <div class="topbar-user"><div class="avatar tiny">{{ auth.user?.name?.slice(0, 1)?.toUpperCase() || 'U' }}</div><span>{{ auth.user?.name }}</span></div>
         </div>
