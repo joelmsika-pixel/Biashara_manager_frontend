@@ -387,6 +387,35 @@ async function showSale(record) {
   }
 }
 
+function receiptHtml() {
+  if (!saleDetails.value) return ''
+  const items = (saleDetails.value.items || []).map((item) =>
+    `<tr><td>${item.item_name}</td><td>${item.quantity}</td><td>${formatMoney(item.line_total)}</td></tr>`
+  ).join('')
+  return `<!doctype html><html><head><title>${saleDetails.value.sale_number}</title><style>body{font-family:Arial,sans-serif;color:#111;max-width:420px;margin:24px auto}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left}td:last-child,th:last-child{text-align:right}h1,h2{margin:4px 0}.meta{color:#555}.total{text-align:right;font-size:18px;margin-top:16px}</style></head><body><h1>${business.value?.name || t('brand')}</h1><p class="meta">${business.value?.phone || ''} ${business.value?.address || ''}</p><h2>${t('receipt')} · ${saleDetails.value.sale_number}</h2><p>${formatDate(saleDetails.value.sale_date)}</p><table><thead><tr><th>${t('productName')}</th><th>${t('quantity')}</th><th>${t('amount')}</th></tr></thead><tbody>${items}</tbody></table><p class="total"><strong>${t('amount')}: ${formatMoney(saleDetails.value.total_amount)}</strong></p></body></html>`
+}
+
+function printReceipt() {
+  if (!saleDetails.value) return
+  const receiptWindow = window.open('', '_blank', 'width=700,height=800')
+  if (!receiptWindow) return
+  receiptWindow.document.write(receiptHtml())
+  receiptWindow.document.close()
+  receiptWindow.focus()
+  receiptWindow.print()
+}
+
+async function shareReceipt() {
+  if (!saleDetails.value) return
+  const text = `${business.value?.name || t('brand')} | ${saleDetails.value.sale_number} | ${formatMoney(saleDetails.value.total_amount)}`
+  try {
+    if (navigator.share) await navigator.share({ title: t('receipt'), text })
+    else await navigator.clipboard.writeText(text)
+  } catch (requestError) {
+    if (requestError?.name !== 'AbortError') error.value = t('errorGeneric')
+  }
+}
+
 function openPaymentForm() {
   paymentForm.value = {
     amount: '',
@@ -617,11 +646,22 @@ onMounted(async () => {
         <div v-if="section === 'dashboard' && isOwner" class="notice-banner"><div class="notice-icon"><Shield :size="17" /></div><div><strong>{{ t('recordOnly') }}</strong><p>{{ t('recordOnlyHint') }}</p></div></div>
 
         <div v-if="section === 'dashboard' && isOwner" class="summary-grid">
-          <article class="summary-card"><div class="summary-heading"><span>{{ t('recordedSales') }}</span><span class="metric-icon green"><ShoppingBag :size="17" /></span></div><strong>{{ formatMoney(dashboard.sales_total) }}</strong><div class="metric-foot"><span class="metric-label">{{ t('salesDescription') }}</span></div><div class="sparkline green-line"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
-          <article class="summary-card"><div class="summary-heading"><span>{{ t('otherIncome') }}</span><span class="metric-icon blue"><ArrowDownLeft :size="17" /></span></div><strong>{{ formatMoney(dashboard.income_total) }}</strong><div class="metric-foot"><span class="metric-label">{{ t('incomeDescription') }}</span></div><div class="sparkline blue-line"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
-          <article class="summary-card"><div class="summary-heading"><span>{{ t('recordedExpenses') }}</span><span class="metric-icon orange"><ArrowUpRight :size="17" /></span></div><strong>{{ formatMoney(dashboard.expenses_total) }}</strong><div class="metric-foot"><span class="metric-label">{{ t('expensesDescription') }}</span></div><div class="sparkline orange-line"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
-          <article class="summary-card"><div class="summary-heading"><span>{{ t('outstandingBalance') }}</span><span class="metric-icon purple"><Wallet :size="17" /></span></div><strong>{{ formatMoney(dashboard.outstanding_total) }}</strong><div class="metric-foot"><span class="metric-label">{{ dashboard.debt_count || 0 }} {{ t('debts').toLowerCase() }}</span></div><div class="sparkline purple-line"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
+          <article class="summary-card"><div class="summary-heading"><span>{{ t('moneyReceived') }}</span><span class="metric-icon green"><ArrowDownLeft :size="17" /></span></div><strong>{{ formatMoney(dashboard.payments_total) }}</strong><div class="metric-foot"><span class="metric-label">{{ t('recordedPaymentHistory') }}</span></div></article>
+          <article class="summary-card"><div class="summary-heading"><span>{{ t('availableItems') }}</span><span class="metric-icon blue"><Package :size="17" /></span></div><strong>{{ dashboard.available_items || 0 }}</strong><div class="metric-foot"><span class="metric-label">{{ dashboard.low_stock_count || 0 }} {{ t('lowStock') }} · {{ dashboard.out_of_stock_count || 0 }} {{ t('outOfStock') }}</span></div></article>
+          <article class="summary-card"><div class="summary-heading"><span>{{ t('profit') }}</span><span class="metric-icon orange"><CircleDollarSign :size="17" /></span></div><strong>{{ formatMoney(dashboard.profit) }}</strong><div class="metric-foot"><span class="metric-label">{{ t('profitFormula') }}</span></div></article>
+          <article class="summary-card"><div class="summary-heading"><span>{{ t('unpaidProductLoans') }}</span><span class="metric-icon purple"><Wallet :size="17" /></span></div><strong>{{ formatMoney(dashboard.outstanding_total) }}</strong><div class="metric-foot"><span class="metric-label">{{ dashboard.debt_count || 0 }} {{ t('debts').toLowerCase() }}</span></div></article>
         </div>
+
+        <div v-if="section === 'dashboard' && isOwner" class="quick-actions">
+          <button class="button button-primary" @click="section = 'income'"><Plus :size="17" />{{ t('recordMoneyIn') }}</button>
+          <button class="button button-secondary" @click="section = 'products'"><Package :size="17" />{{ t('myProducts') }}</button>
+        </div>
+
+        <section v-if="section === 'dashboard' && isOwner" class="panel-card">
+          <div class="panel-heading"><div class="card-title-row"><div class="section-icon"><ShoppingBag :size="18" /></div><div><h2>{{ t('bestSellingProducts') }}</h2><p>{{ t('basedOnSelectedPeriod') }}</p></div></div></div>
+          <div v-if="dashboard.best_sellers?.length" class="table-wrap"><table><thead><tr><th>{{ t('productName') }}</th><th>{{ t('quantitySold') }}</th><th>{{ t('amount') }}</th></tr></thead><tbody><tr v-for="item in dashboard.best_sellers" :key="item.name"><td>{{ item.name }}</td><td>{{ item.quantity }}</td><td class="amount-cell">{{ formatMoney(item.total) }}</td></tr></tbody></table></div>
+          <div v-else class="state-message"><ShoppingBag :size="25" /><span>{{ t('empty') }}</span></div>
+        </section>
 
         <div v-if="section === 'reports' && isOwner" class="summary-grid report-grid">
           <article class="summary-card"><div class="summary-heading"><span>{{ t('otherIncome') }}</span><ArrowDownLeft :size="17" /></div><strong>{{ formatMoney(dashboard.income_total) }}</strong></article>
@@ -763,6 +803,10 @@ onMounted(async () => {
         <h3>{{ t('items') }}</h3><div v-for="item in saleDetails.items" :key="item.id" class="detail-row"><span>{{ item.item_name }} × {{ item.quantity }}</span><strong>{{ formatMoney(item.line_total) }}</strong></div>
         <h3>{{ t('payments') }}</h3><p class="page-subtitle">{{ t('paymentNote') }}</p><div v-if="saleDetails.payments.length"><div v-for="payment in saleDetails.payments" :key="payment.id" class="detail-row"><span>{{ formatDate(payment.payment_date) }} · {{ payment.payment_method }}</span><strong>{{ formatMoney(payment.amount) }}</strong></div></div><p v-else class="state-message">{{ t('empty') }}</p>
         <button v-if="can('payments.create') && Number(saleDetails.balance) > 0" class="button button-primary payment-add" @click="openPaymentForm">{{ t('recordPayment') }}</button>
+        <div class="modal-actions">
+          <button type="button" class="button button-secondary" @click="shareReceipt">{{ t('share') }}</button>
+          <button type="button" class="button button-primary" @click="printReceipt">{{ t('downloadPdf') }}</button>
+        </div>
         <form v-if="paymentFormOpen" class="payment-entry" @submit.prevent="submitPayment">
           <label>{{ t('amount') }}<input v-model="paymentForm.amount" type="number" min="0.01" step="0.01" required /></label>
           <label>{{ t('date') }}<input v-model="paymentForm.payment_date" type="date" required disabled /></label>

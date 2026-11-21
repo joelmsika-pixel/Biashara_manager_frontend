@@ -173,6 +173,10 @@ tbody tr:hover { background: #fcfdfc; }
 .password-field { position: relative; display: flex; align-items: center; color: #98a49d; }
 .password-field svg { position: absolute; left: 11px; pointer-events: none; }
 .password-field input { padding-left: 35px; min-height: 41px; }
+.password-field .password-toggle { position: absolute; right: 7px; width: 30px; height: 30px; border: 0; background: transparent; color: #69766f; display: grid; place-items: center; cursor: pointer; }
+.password-field .password-toggle svg { position: static; pointer-events: auto; }
+.remember-row { display: flex !important; flex-direction: row !important; align-items: center; gap: 8px; color: #4d5b53; }
+.remember-row input { width: 16px; height: 16px; }
 .login-form .button { min-height: 42px; margin-top: 9px; }
 .login-links { margin-top: 13px; text-align: center; }
 .login-links button { border: 0; background: transparent; color: #397455; cursor: pointer; font-size: 10px; font-weight: 600; }

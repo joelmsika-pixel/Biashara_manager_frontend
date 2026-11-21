@@ -2,7 +2,7 @@
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { BriefcaseBusiness, Languages, LockKeyhole } from '@lucide/vue'
+import { BriefcaseBusiness, Eye, EyeOff, Languages, LockKeyhole } from '@lucide/vue'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
 
@@ -14,9 +14,15 @@ const mode = ref(route.name === 'reset-password' ? 'reset' : 'login')
 const email = ref(String(route.query.email || ''))
 const password = ref('')
 const passwordConfirmation = ref('')
+const fullName = ref('')
+const businessName = ref('')
+const phone = ref('')
+const currency = ref('TZS')
 const error = ref('')
 const message = ref('')
 const lockRemaining = ref(0)
+const showPassword = ref(false)
+const rememberMe = ref(localStorage.getItem('remember_login') === 'true')
 let lockTimer
 
 function lockStorageKey(value = email.value) {
@@ -69,7 +75,21 @@ async function submit() {
   error.value = ''
   message.value = ''
   try {
-    if (mode.value === 'forgot') {
+    if (mode.value === 'register') {
+      const { data } = await api.post('/register', {
+        name: fullName.value,
+        business_name: businessName.value,
+        phone: phone.value,
+        email: email.value,
+        currency: currency.value,
+        password: password.value,
+        password_confirmation: passwordConfirmation.value,
+      })
+      localStorage.setItem('access_token', data.token)
+      localStorage.setItem('refresh_token', data.refresh_token)
+      auth.user = data.user
+      await router.replace('/')
+    } else if (mode.value === 'forgot') {
       await api.post('/forgot-password', { email: email.value })
       message.value = t('resetSent')
     } else if (mode.value === 'reset') {
@@ -84,6 +104,7 @@ async function submit() {
       password.value = ''
       passwordConfirmation.value = ''
     } else {
+      localStorage.setItem('remember_login', rememberMe.value ? 'true' : 'false')
       await auth.login({ email: email.value, password: password.value })
       await router.replace('/')
     }
@@ -122,19 +143,33 @@ function toggleLanguage() {
     <section class="login-card">
       <div class="brand-mark"><BriefcaseBusiness :size="22" /></div>
       <p class="eyebrow">{{ t('brand') }}</p>
-      <h1>{{ mode === 'login' ? t('login') : mode === 'forgot' ? t('forgotPassword') : t('resetPassword') }}</h1>
-      <p class="muted">{{ mode === 'login' ? t('loginSubtitle') : mode === 'forgot' ? t('forgotSubtitle') : t('resetPassword') }}</p>
+      <h1>{{ mode === 'login' ? t('login') : mode === 'register' ? t('createAccount') : mode === 'forgot' ? t('forgotPassword') : t('resetPassword') }}</h1>
+      <p class="muted">{{ mode === 'login' ? t('loginSubtitle') : mode === 'register' ? t('registerSubtitle') : mode === 'forgot' ? t('forgotSubtitle') : t('resetPassword') }}</p>
       <form class="login-form" @submit.prevent="submit">
+        <template v-if="mode === 'register'">
+          <label for="full-name">{{ t('fullName') }}</label>
+          <input id="full-name" v-model.trim="fullName" type="text" maxlength="150" required />
+          <label for="business-name">{{ t('businessName') }}</label>
+          <input id="business-name" v-model.trim="businessName" type="text" maxlength="150" required />
+          <label for="phone">{{ t('phone') }}</label>
+          <input id="phone" v-model.trim="phone" type="tel" maxlength="30" required />
+          <label for="currency">{{ t('currency') }}</label>
+          <select id="currency" v-model="currency"><option value="TZS">TZS</option><option value="KES">KES</option><option value="UGX">UGX</option><option value="USD">USD</option></select>
+        </template>
         <label for="email">{{ t('email') }}</label>
         <input id="email" v-model.trim="email" type="email" autocomplete="username" :readonly="(mode === 'reset' && Boolean(route.query.email)) || (mode === 'login' && lockRemaining > 0)" :disabled="mode === 'login' && lockRemaining > 0" required />
         <template v-if="mode !== 'forgot'">
           <label for="password">{{ mode === 'reset' ? t('newPassword') : t('password') }}</label>
           <div class="password-field">
             <LockKeyhole :size="17" />
-            <input id="password" v-model="password" type="password" :autocomplete="mode === 'reset' ? 'new-password' : 'current-password'" :minlength="mode === 'reset' ? 12 : 1" :disabled="mode === 'login' && lockRemaining > 0" required />
+            <input id="password" v-model="password" :type="showPassword ? 'text' : 'password'" :autocomplete="mode === 'reset' || mode === 'register' ? 'new-password' : 'current-password'" :minlength="mode === 'reset' || mode === 'register' ? 12 : 1" :disabled="mode === 'login' && lockRemaining > 0" required />
+            <button v-if="mode !== 'reset'" type="button" class="password-toggle" :aria-label="showPassword ? t('hidePassword') : t('showPassword')" @click="showPassword = !showPassword">
+              <component :is="showPassword ? EyeOff : Eye" :size="17" />
+            </button>
           </div>
         </template>
-        <template v-if="mode === 'reset'">
+        <label v-if="mode === 'login'" class="remember-row"><input v-model="rememberMe" type="checkbox" /><span>{{ t('rememberMe') }}</span></label>
+        <template v-if="mode === 'reset' || mode === 'register'">
           <label for="password-confirmation">{{ t('confirmPassword') }}</label>
           <input id="password-confirmation" v-model="passwordConfirmation" type="password" autocomplete="new-password" minlength="12" required />
         </template>
@@ -142,10 +177,10 @@ function toggleLanguage() {
         <p v-if="mode === 'login' && lockRemaining > 0" class="form-error" role="alert">{{ t('loginLocked', { time: formatCountdown(lockRemaining) }) }}</p>
         <p v-if="message" class="success-message" role="status">{{ message }}</p>
         <button class="button button-primary full-width" type="submit" :disabled="auth.loading || (mode === 'login' && lockRemaining > 0)">
-          {{ auth.loading ? t('signingIn') : mode === 'login' && lockRemaining > 0 ? formatCountdown(lockRemaining) : mode === 'login' ? t('signIn') : mode === 'forgot' ? t('sendResetLink') : t('resetPassword') }}
+          {{ auth.loading ? t('signingIn') : mode === 'login' && lockRemaining > 0 ? formatCountdown(lockRemaining) : mode === 'register' ? t('createAccount') : mode === 'login' ? t('signIn') : mode === 'forgot' ? t('sendResetLink') : t('resetPassword') }}
         </button>
       </form>
-      <div v-if="mode === 'login'" class="login-links"><button type="button" @click="mode = 'forgot'; error = ''; message = ''">{{ t('forgotPassword') }}</button></div>
+      <div v-if="mode === 'login'" class="login-links"><button type="button" @click="mode = 'forgot'; error = ''; message = ''">{{ t('forgotPassword') }}</button><button type="button" @click="mode = 'register'; error = ''; message = ''">{{ t('createAccount') }}</button></div>
       <div v-else class="login-links"><button type="button" @click="mode = 'login'; error = ''; message = ''">{{ t('backToLogin') }}</button></div>
       <p v-if="mode === 'login'" class="login-footnote">{{ t('noAccount') }}</p>
     </section>

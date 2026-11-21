@@ -301,6 +301,8 @@ onBeforeUnmount(() => {
             <strong>{{ formatPrice(product.selling_price) }}</strong>
             <span>{{ t('stockQuantity') }}: {{ product.stock_quantity }}</span>
           </div>
+          <p v-if="Number(product.stock_quantity) === 0" class="inline-error">{{ t('outOfStockWarning') }}</p>
+          <p v-else-if="Number(product.stock_quantity) <= 5" class="inline-note">{{ t('lowStockWarning') }}</p>
           <p v-if="product.cost_price !== null && product.cost_price !== undefined" class="product-sku">{{ t('productCostPrice') }}: {{ formatPrice(product.cost_price) }}</p>
           <p v-if="product.sku" class="product-sku">{{ t('sku') }}: {{ product.sku }}</p>
         </div>
