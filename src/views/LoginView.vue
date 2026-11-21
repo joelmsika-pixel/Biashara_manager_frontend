@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { BriefcaseBusiness, Eye, EyeOff, Languages, LockKeyhole } from '@lucide/vue'
@@ -106,7 +106,14 @@ async function submit() {
     } else {
       localStorage.setItem('remember_login', rememberMe.value ? 'true' : 'false')
       await auth.login({ email: email.value, password: password.value })
-      await router.replace('/')
+      auth.startDashboardPreparation()
+      await nextTick()
+      try {
+        await router.replace('/')
+      } catch (navigationError) {
+        auth.cancelDashboardPreparation()
+        throw navigationError
+      }
     }
   } catch (requestError) {
     const retryAfter = Number(requestError.response?.data?.retry_after || requestError.response?.headers?.['retry-after'])

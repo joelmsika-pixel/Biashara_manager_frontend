@@ -1,8 +1,10 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ImagePlus, Package, Pencil, Plus, Search, Trash2, Upload, X } from '@lucide/vue'
+import { ClipboardList, ImagePlus, Package, Pencil, Plus, Search, Trash2, Upload, X } from '@lucide/vue'
 import api from '../services/api'
+import { commonUnits } from '../constants/units'
+import PcInspectionReports from './PcInspectionReports.vue'
 
 const props = defineProps({
   businessUrl: { type: String, required: true },
@@ -10,11 +12,13 @@ const props = defineProps({
   canCreate: { type: Boolean, default: false },
   canEdit: { type: Boolean, default: false },
   canDelete: { type: Boolean, default: false },
+  canSell: { type: Boolean, default: false },
 })
 
 const { t } = useI18n()
 const products = ref([])
 const categories = ref([])
+const categoryStock = ref([])
 const pagination = ref(null)
 const search = ref('')
 const categoryFilter = ref('')
@@ -24,6 +28,14 @@ const loading = ref(false)
 const error = ref('')
 const cleanupWarning = ref('')
 const modalOpen = ref(false)
+const saleModalOpen = ref(false)
+const pcInspectionOpen = ref(false)
+const inspectionStartView = ref('new')
+const templateDropdownOpen = ref(false)
+const saleMode = ref('cash')
+const saleProduct = ref(null)
+const saleForm = ref({})
+const saleError = ref('')
 const editingProduct = ref(null)
 const saving = ref(false)
 const uploadProgress = ref(0)
@@ -43,6 +55,7 @@ function blankForm() {
     cost_price: '',
     sku: '',
     category: '',
+    unit: 'pieces',
     stock_quantity: '0',
   }
 }
@@ -107,12 +120,13 @@ async function loadProducts() {
         category: categoryFilter.value || undefined,
         stock_status: stockFilter.value,
         page: page.value,
-        per_page: 12,
+        per_page: 10,
       },
     })
     if (currentRequest !== requestId) return
     products.value = data.data || []
     categories.value = data.categories || []
+    categoryStock.value = data.category_stock || []
     pagination.value = data.meta || null
   } catch (requestError) {
     if (currentRequest !== requestId) return
@@ -120,6 +134,7 @@ async function loadProducts() {
       ? t('forbidden')
       : requestError.response?.data?.message || t('errorGeneric')
     products.value = []
+    categoryStock.value = []
     pagination.value = null
   } finally {
     if (currentRequest === requestId) loading.value = false
@@ -129,6 +144,7 @@ async function loadProducts() {
 function openCreate() {
   editingProduct.value = null
   form.value = blankForm()
+  templateDropdownOpen.value = false
   retainedImages.value = []
   releaseSelectedFiles()
   formError.value = ''
@@ -138,6 +154,7 @@ function openCreate() {
 
 function openEdit(product) {
   editingProduct.value = product
+  templateDropdownOpen.value = false
   form.value = {
     name: product.name || '',
     description: product.description || '',
@@ -145,6 +162,7 @@ function openEdit(product) {
     cost_price: product.cost_price === null ? '' : String(product.cost_price ?? ''),
     sku: product.sku || '',
     category: product.category || '',
+    unit: product.unit || 'pieces',
     stock_quantity: String(product.stock_quantity ?? '0'),
   }
   retainedImages.value = [...(product.images || [])]
@@ -154,11 +172,78 @@ function openEdit(product) {
   modalOpen.value = true
 }
 
+function applyProductTemplate(name) {
+  templateDropdownOpen.value = false
+  if (name === 'PC') {
+    modalOpen.value = false
+    releaseSelectedFiles()
+    retainedImages.value = []
+    formError.value = ''
+    inspectionStartView.value = 'new'
+    pcInspectionOpen.value = true
+    return
+  }
+  form.value.name = name
+}
+
+function openPcInspectionHistory() {
+  inspectionStartView.value = 'history'
+  pcInspectionOpen.value = true
+}
+
 function closeModal() {
   if (saving.value) return
   modalOpen.value = false
+  templateDropdownOpen.value = false
   releaseSelectedFiles()
   retainedImages.value = []
+}
+
+function localToday() {
+  const today = new Date()
+  return [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-')
+}
+
+function openProductSale(product, mode) {
+  saleProduct.value = product
+  saleMode.value = mode
+  saleForm.value = {
+    sale_date: localToday(),
+    quantity: '1',
+    unit_price: String(product.selling_price),
+    customer_name: '',
+    due_date: '',
+  }
+  saleError.value = ''
+  saleModalOpen.value = true
+}
+
+async function submitProductSale() {
+  saleError.value = ''
+  saving.value = true
+  try {
+    await api.post(`${props.businessUrl}/sales`, {
+      sale_date: saleForm.value.sale_date,
+      customer_name: saleForm.value.customer_name,
+      due_date: saleMode.value === 'credit' ? saleForm.value.due_date || null : null,
+      is_completed: saleMode.value === 'cash',
+      items: [{
+        product_id: saleProduct.value.id,
+        item_name: saleProduct.value.name,
+        quantity: saleForm.value.quantity,
+        unit: saleProduct.value.unit,
+        unit_price: saleForm.value.unit_price,
+      }],
+    })
+    saleModalOpen.value = false
+    await loadProducts()
+  } catch (requestError) {
+    saleError.value = requestError.response?.data?.message
+      || Object.values(requestError.response?.data?.errors || {}).flat()[0]
+      || t('errorGeneric')
+  } finally {
+    saving.value = false
+  }
 }
 
 async function saveProduct() {
@@ -221,6 +306,10 @@ function formatPrice(value) {
   }).format(Number(value || 0))
 }
 
+function formatQuantity(value) {
+  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 }).format(Number(value || 0))
+}
+
 watch(
   [() => props.businessUrl, search, categoryFilter, stockFilter, page],
   () => {
@@ -257,13 +346,13 @@ onBeforeUnmount(() => {
     <div class="products-toolbar">
       <label class="search-box products-search">
         <Search :size="17" />
-        <input v-model="search" :placeholder="t('productsSearch')" :aria-label="t('productsSearch')" />
+        <input v-model="search" name="products-search" :placeholder="t('productsSearch')" :aria-label="t('productsSearch')" />
       </label>
-      <select v-model="categoryFilter" class="products-filter" :aria-label="t('category')">
+      <select v-model="categoryFilter" name="products-category" class="products-filter" :aria-label="t('category')">
         <option value="">{{ t('allCategories') }}</option>
         <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
       </select>
-      <select v-model="stockFilter" class="products-filter" :aria-label="t('productStockFilter')">
+      <select v-model="stockFilter" name="products-stock" class="products-filter" :aria-label="t('productStockFilter')">
         <option value="all">{{ t('allStock') }}</option>
         <option value="in-stock">{{ t('inStock') }}</option>
         <option value="out-of-stock">{{ t('outOfStock') }}</option>
@@ -271,7 +360,25 @@ onBeforeUnmount(() => {
       <button v-if="canCreate" class="button button-primary products-add" type="button" @click="openCreate">
         <Plus :size="17" />{{ t('addProduct') }}
       </button>
+      <button class="button button-secondary products-add" type="button" @click="openPcInspectionHistory">
+        <ClipboardList :size="17" />{{ t('pcInspectionHistory') }}
+      </button>
     </div>
+
+    <section v-if="categoryStock.length" class="category-stock-grid" :aria-label="t('categoryStock')">
+      <article v-for="category in categoryStock" :key="`${category.category}-${category.unit}`" class="category-stock-card">
+        <div class="category-stock-heading">
+          <span class="category-stock-icon"><Package :size="17" /></span>
+          <h2>{{ category.category }}</h2>
+          <span class="category-stock-count">{{ t('productsInCategory', { count: category.product_count }) }}</span>
+        </div>
+        <div class="category-stock-total">
+          <strong>{{ formatQuantity(category.remaining_quantity) }}</strong>
+          <span class="category-stock-unit">{{ category.unit }}</span>
+          <small>{{ t('remainingStock') }}</small>
+        </div>
+      </article>
+    </section>
 
     <p v-if="error" class="inline-error" role="alert">{{ error }}</p>
     <p v-if="cleanupWarning" class="inline-note" role="status">{{ cleanupWarning }}</p>
@@ -298,13 +405,21 @@ onBeforeUnmount(() => {
           </div>
           <p v-if="product.description" class="product-description">{{ product.description }}</p>
           <div class="product-card-details">
-            <strong>{{ formatPrice(product.selling_price) }}</strong>
-            <span>{{ t('stockQuantity') }}: {{ product.stock_quantity }}</span>
+            <strong>{{ formatPrice(product.selling_price) }} / {{ product.unit }}</strong>
+            <span>{{ t('stockQuantity') }}: {{ formatQuantity(product.stock_quantity) }} {{ product.unit }}</span>
           </div>
+<<<<<<< HEAD
           <p v-if="Number(product.stock_quantity) === 0" class="inline-error">{{ t('outOfStockWarning') }}</p>
           <p v-else-if="Number(product.stock_quantity) <= 5" class="inline-note">{{ t('lowStockWarning') }}</p>
           <p v-if="product.cost_price !== null && product.cost_price !== undefined" class="product-sku">{{ t('productCostPrice') }}: {{ formatPrice(product.cost_price) }}</p>
+=======
+          <p v-if="product.cost_price !== null && product.cost_price !== undefined" class="product-sku">{{ t('productCostPrice') }}: {{ formatPrice(product.cost_price) }} / {{ product.unit }}</p>
+>>>>>>> 2d1aed07787a8ef25065acb68953b996abc6494b
           <p v-if="product.sku" class="product-sku">{{ t('sku') }}: {{ product.sku }}</p>
+          <div v-if="canSell && Number(product.stock_quantity) > 0" class="product-card-actions">
+            <button class="button button-secondary" type="button" @click="openProductSale(product, 'cash')">{{ t('sellProduct') }}</button>
+            <button class="button button-secondary" type="button" @click="openProductSale(product, 'credit')">{{ t('sellProductOnCredit') }}</button>
+          </div>
         </div>
       </article>
     </div>
@@ -324,14 +439,31 @@ onBeforeUnmount(() => {
           <div><p class="eyebrow">{{ t('products') }}</p><h2>{{ editingProduct ? t('editProduct') : t('addProduct') }}</h2></div>
           <button class="icon-button" type="button" :aria-label="t('cancel')" :disabled="saving" @click="closeModal"><X :size="19" /></button>
         </div>
+        <div v-if="!editingProduct" class="product-template-picker">
+          <button
+            class="button button-secondary"
+            type="button"
+            :aria-expanded="templateDropdownOpen"
+            aria-controls="product-template-options"
+            @click="templateDropdownOpen = !templateDropdownOpen"
+          >
+            {{ t('useTemplateProduct') }}
+          </button>
+          <div v-show="templateDropdownOpen" id="product-template-options" class="product-template-options">
+            <button class="button button-secondary product-template-option" type="button" @click="applyProductTemplate('PC')">
+              PC
+            </button>
+          </div>
+        </div>
         <div class="form-grid">
-          <label>{{ t('productName') }}<span class="required-mark"> *</span><input v-model="form.name" maxlength="150" required /></label>
-          <label>{{ t('category') }}<span class="required-mark"> *</span><input v-model="form.category" maxlength="100" required /></label>
-          <label>{{ t('productSellingPrice') }}<span class="required-mark"> *</span><input v-model="form.selling_price" type="number" min="0" max="9999999999.99" step="0.01" required /></label>
-          <label>{{ t('productCostPrice') }}<input v-model="form.cost_price" type="number" min="0" max="9999999999.99" step="0.01" /></label>
-          <label>{{ t('sku') }}<input v-model="form.sku" maxlength="100" /></label>
-          <label>{{ t('stockQuantity') }}<span class="required-mark"> *</span><input v-model="form.stock_quantity" type="number" min="0" max="999999999.999" step="0.001" required /></label>
-          <label class="form-span">{{ t('description') }}<textarea v-model="form.description" maxlength="2000" rows="3"></textarea></label>
+          <label>{{ t('productName') }}<span class="required-mark"> *</span><input v-model="form.name" name="product-name" maxlength="150" required /></label>
+          <label>{{ t('category') }}<span class="required-mark"> *</span><input v-model="form.category" name="product-category" list="product-categories" maxlength="100" required /><datalist id="product-categories"><option v-for="category in categories" :key="category" :value="category" /></datalist></label>
+          <label>{{ t('unit') }}<span class="required-mark"> *</span><input v-model="form.unit" name="product-unit" list="product-unit-suggestions" maxlength="40" required /><datalist id="product-unit-suggestions"><option v-for="unit in commonUnits" :key="unit" :value="unit" /></datalist></label>
+          <label>{{ t('unitPrice') }}<span class="required-mark"> *</span><input v-model="form.selling_price" name="selling-price" type="number" min="0" max="9999999999.99" step="0.01" required /></label>
+          <label>{{ t('productCostPrice') }}<input v-model="form.cost_price" name="cost-price" type="number" min="0" max="9999999999.99" step="0.01" /></label>
+          <label>{{ t('sku') }}<input v-model="form.sku" name="product-sku" maxlength="100" /></label>
+          <label>{{ t('stockQuantity') }}<span class="required-mark"> *</span><input v-model="form.stock_quantity" name="stock-quantity" type="number" min="0" max="999999999.999" step="0.001" required /></label>
+          <label class="form-span">{{ t('description') }}<textarea v-model="form.description" name="product-description" maxlength="2000" rows="3"></textarea></label>
         </div>
 
         <div class="product-image-section">
@@ -346,7 +478,7 @@ onBeforeUnmount(() => {
               <button type="button" :aria-label="t('removeImage')" :disabled="saving" @click="removeSelectedFile(index)"><X :size="14" /></button>
             </div>
           </div>
-          <input ref="fileInput" class="visually-hidden" type="file" accept=".jpg,.jpeg,.png,.webp,.svg,image/jpeg,image/png,image/webp,image/svg+xml" multiple @change="addFiles" />
+          <input ref="fileInput" class="visually-hidden" name="images" type="file" accept=".jpg,.jpeg,.png,.webp,.svg,image/jpeg,image/png,image/webp,image/svg+xml" multiple @change="addFiles" />
           <button
             class="button button-secondary product-upload-button"
             type="button"
@@ -369,5 +501,36 @@ onBeforeUnmount(() => {
         </div>
       </form>
     </div>
+
+    <div v-if="saleModalOpen && saleProduct" class="modal-backdrop" @click.self="saleModalOpen = false">
+      <form class="modal-card product-modal" @submit.prevent="submitProductSale">
+        <div class="modal-heading">
+          <div><p class="eyebrow">{{ t('products') }}</p><h2>{{ saleMode === 'cash' ? t('sellProduct') : t('sellProductOnCredit') }}</h2></div>
+          <button class="icon-button" type="button" :aria-label="t('cancel')" :disabled="saving" @click="saleModalOpen = false"><X :size="19" /></button>
+        </div>
+        <p class="inline-note">{{ saleProduct.name }} · {{ t('stockQuantity') }}: {{ formatQuantity(saleProduct.stock_quantity) }} {{ saleProduct.unit }}</p>
+        <div class="form-grid">
+          <label>{{ t('date') }}<input v-model="saleForm.sale_date" name="sale-date" type="date" required /></label>
+          <label>{{ t('quantity') }} ({{ saleProduct.unit }})<input v-model="saleForm.quantity" name="sale-quantity" type="number" min="0.001" :max="saleProduct.stock_quantity" step="0.001" required /></label>
+          <label>{{ t('unitPrice') }}<input v-model="saleForm.unit_price" name="sale-unit-price" type="number" min="0" max="9999999999.99" step="0.01" required /></label>
+          <label>{{ saleMode === 'credit' ? t('borrowerName') : t('customerName') }}<input v-model="saleForm.customer_name" name="sale-customer-name" :required="saleMode === 'credit'" maxlength="150" /></label>
+          <label v-if="saleMode === 'credit'">{{ t('dueDate') }}<input v-model="saleForm.due_date" name="sale-due-date" type="date" /></label>
+        </div>
+        <p v-if="saleMode === 'credit'" class="inline-note">{{ t('productCreditSaleHint') }}</p>
+        <p v-if="saleError" class="form-error" role="alert">{{ saleError }}</p>
+        <div class="modal-actions">
+          <button class="button button-secondary" type="button" :disabled="saving" @click="saleModalOpen = false">{{ t('cancel') }}</button>
+          <button class="button button-primary" :disabled="saving">{{ saving ? t('savingProduct') : t('saveProductSale') }}</button>
+        </div>
+      </form>
+    </div>
+
+    <PcInspectionReports
+      v-if="pcInspectionOpen"
+      :business-url="businessUrl"
+      :can-create="canCreate"
+      :start-view="inspectionStartView"
+      @close="pcInspectionOpen = false"
+    />
   </section>
 </template>

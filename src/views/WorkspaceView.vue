@@ -1,7 +1,7 @@
 frontend<script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   Activity, ArrowDownLeft, ArrowUpRight, BriefcaseBusiness, ChevronDown, CircleDollarSign,
   ClipboardList, FileBarChart, LayoutDashboard, LogOut, Mail, Menu, Package, Plus, Search, Shield,
@@ -10,13 +10,15 @@ import {
 import api from '../services/api'
 import { useAuthStore } from '../stores/auth'
 import ProductsPanel from '../components/ProductsPanel.vue'
+import { commonUnits } from '../constants/units'
 
 const { t, locale } = useI18n()
+const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const businesses = ref(auth.user?.businesses || [])
-const selectedBusinessId = ref(localStorage.getItem('business_id') || '')
-const section = ref('sales')
+const selectedBusinessId = ref(String(route.params.businessId || localStorage.getItem('business_id') || ''))
+const section = ref(String(route.params.section || 'sales'))
 const records = ref([])
 const dashboard = ref({})
 const pagination = ref(null)
@@ -39,6 +41,8 @@ const saving = ref(false)
 const formError = ref('')
 const form = ref({})
 const restoringEmployee = ref(null)
+const removeEmployeeTarget = ref(null)
+const removeEmployeeData = ref(false)
 const dateFrom = ref('')
 const dateTo = ref('')
 const reportPeriod = ref('month')
@@ -59,7 +63,7 @@ const nav = computed(() => {
         { key: 'expenses', icon: ArrowUpRight, permission: 'expenses.view' },
         { key: 'debts', icon: CircleDollarSign, permission: 'debts.view' },
         { key: 'sales', icon: ShoppingBag, permission: 'sales.view' },
-        { key: 'products', icon: Package, permission: 'products.view' },
+        { key: 'products', label: 'myStore', icon: Package, permission: 'products.view' },
         { key: 'reports', icon: FileBarChart, permission: 'reports.view' },
         { key: 'employees', icon: Users, permission: 'employees.view' },
         { key: 'inbox', icon: Mail },
@@ -69,7 +73,7 @@ const nav = computed(() => {
         { key: 'expenses', icon: ArrowUpRight, permission: 'expenses.view' },
         { key: 'debts', icon: CircleDollarSign, permission: 'debts.view' },
         { key: 'sales', icon: ShoppingBag, permission: 'sales.view' },
-        { key: 'products', icon: Package, permission: 'products.view' },
+        { key: 'products', label: 'myStore', icon: Package, permission: 'products.view' },
         { key: 'inbox', icon: Mail },
       ]
   return [...entries, { key: 'logout', icon: LogOut }]
@@ -79,22 +83,36 @@ function can(permission) {
   const member = membership.value
   if (!member?.is_active) return false
   if (!permission) return true
+  if (member.role === 'employee' && ['products.view', 'products.create'].includes(permission)) return true
   if (member.role === 'employee' && ['debts.view', 'debts.create'].includes(permission)) return true
   if (member.role === 'owner') return true
   return Array.isArray(member.permissions) && member.permissions.includes(permission)
 }
 
+function defaultSection() {
+  if (isOwner.value) return 'dashboard'
+  if (can('sales.view')) return 'sales'
+  return nav.value.find((item) => item.key !== 'logout' && can(item.permission))?.key || 'sales'
+}
+
+function resolveSection(key) {
+  if (key === 'dashboard' && isOwner.value) return key
+  const entry = nav.value.find((item) => item.key === key && item.key !== 'logout')
+  return entry && can(entry.permission) ? key : defaultSection()
+}
+
 const titles = {
   dashboard: 'dashboard', sales: 'sales', income: 'income', expenses: 'expenses',
-  debts: 'debts', products: 'products', employees: 'employees', reports: 'reports', inbox: 'inbox', logout: 'logout',
+  debts: 'debts', products: 'myStore', employees: 'employees', reports: 'reports', inbox: 'inbox', logout: 'logout',
 }
 const activeTitle = computed(() => t(titles[section.value] || 'dashboard'))
 const fields = {
   sales: [
     { name: 'sale_date', label: 'date', type: 'date', required: true, autoToday: true },
     { name: 'product_name', label: 'productName', type: 'text', required: true },
-    { name: 'product_price', label: 'productPrice', type: 'number', required: true, min: 0.01, step: 0.01 },
+    { name: 'product_price', label: 'unitPrice', type: 'number', required: true, min: 0.01, step: 0.01 },
     { name: 'quantity', label: 'quantity', type: 'number', required: true, min: 0.001, step: 0.001 },
+    { name: 'unit', label: 'unit', type: 'text', required: true, maxlength: 40, defaultValue: 'pieces' },
   ],
   income: [
     { name: 'income_date', label: 'date', type: 'date', required: true, autoToday: true },
@@ -130,7 +148,7 @@ const columns = computed(() => {
     sales: ['sale_date', 'product_name', 'quantity', 'product_price', 'total_amount'],
     income: ['income_date', 'amount', 'description'],
     expenses: ['expense_date', 'amount', 'description'],
-    debts: ['loan_date', 'borrower_name', 'principal', 'description'],
+    debts: ['loan_date', 'borrower_name', 'items', 'principal', 'description'],
     employees: ['name', 'email', 'role', 'is_active'],
     reports: ['type', 'description', 'date', 'customer', 'category', 'amount', 'status', 'employee'],
   }
@@ -144,8 +162,9 @@ function labelFor(field) {
     if (field === 'total_amount' || field === 'paid_amount' || field === 'balance') return field === 'balance' ? t('outstandingBalance') : t('amount')
     if (field === 'principal') return t('amount')
     if (field === 'product_name') return t('productName')
-    if (field === 'product_price') return t('productPrice')
+    if (field === 'product_price') return t('unitPrice')
     if (field === 'quantity') return t('quantity')
+    if (field === 'items') return t('items')
     if (field === 'loan_type') return t('type')
     if (field === 'borrower_name') return t('borrowerName')
     if (field === 'business') return t('businessName')
@@ -169,10 +188,13 @@ function valueFor(row, field) {
   if (field === 'type') return reportTypeLabel(row.type)
   if (field === 'description') return row.description ?? row.notes ?? '—'
   if (field === 'product_name') return row.items?.map((item) => item.item_name).join(', ') || '—'
-  if (field === 'quantity') return row.items?.map((item) => Number(item.quantity).toString()).join(', ') || '—'
+  if (field === 'quantity') return row.items?.map((item) => `${Number(item.quantity).toString()} ${item.unit || 'pieces'}`).join(', ') || '—'
   if (field === 'product_price') {
-    const prices = row.items?.map((item) => formatMoney(item.unit_price))
+    const prices = row.items?.map((item) => `${formatMoney(item.unit_price)} / ${item.unit || 'pieces'}`)
     return prices?.join(', ') || '—'
+  }
+  if (field === 'items') {
+    return row.items?.map((item) => `${item.item_name} × ${Number(item.quantity).toString()} ${item.unit || 'pieces'}`).join(', ') || '—'
   }
   if (field === 'loan_type') return t(row.loan_type === 'loan' ? 'businessLoan' : 'saleDebt')
   if (field === 'customer') return typeof row.customer === 'string' ? row.customer : row.customer?.name || '—'
@@ -210,6 +232,16 @@ function routeFor(key = section.value) {
   if (key === 'employees') return `${businessUrl.value}/employees`
   if (key === 'inbox') return `${businessUrl.value}/inbox`
   return `${businessUrl.value}/${key}`
+}
+
+function workspacePath(businessId = selectedBusinessId.value, key = section.value) {
+  return businessId ? `/businesses/${encodeURIComponent(businessId)}/${encodeURIComponent(key)}` : '/'
+}
+
+function syncWorkspaceRoute(replace = false) {
+  const path = workspacePath()
+  if (route.path === path) return
+  return replace ? router.replace(path) : router.push(path)
 }
 
 async function load() {
@@ -261,7 +293,7 @@ async function load() {
         to: dateTo.value || undefined,
         search: query.value || undefined,
         page: page.value,
-        per_page: 15,
+        per_page: 10,
       } })
       if (requestId !== loadRequestId) return
       dashboard.value = data
@@ -269,7 +301,7 @@ async function load() {
       pagination.value = data.records?.meta || data.records || null
       return
     }
-    const params = { page: page.value, per_page: 15, search: query.value || undefined }
+    const params = { page: page.value, per_page: 10, search: query.value || undefined }
     const { data } = await api.get(routeFor(), { params })
     if (requestId !== loadRequestId) return
     records.value = data.data || (Array.isArray(data) ? data : [])
@@ -287,7 +319,10 @@ async function load() {
 async function loadBusinesses() {
   if (!auth.user) return
   businesses.value = auth.user.businesses || []
-  if (!businesses.value.some((item) => String(item.id) === String(selectedBusinessId.value))) {
+  const requestedBusinessId = String(route.params.businessId || selectedBusinessId.value)
+  if (businesses.value.some((item) => String(item.id) === requestedBusinessId)) {
+    selectedBusinessId.value = requestedBusinessId
+  } else {
     selectedBusinessId.value = String(businesses.value[0]?.id || '')
   }
   if (selectedBusinessId.value) localStorage.setItem('business_id', selectedBusinessId.value)
@@ -299,8 +334,8 @@ async function openForm() {
   restoringEmployee.value = null
   form.value = Object.fromEntries(
     (fields[section.value] || [])
-      .filter((field) => field.autoToday)
-      .map((field) => [field.name, localToday()]),
+      .filter((field) => field.autoToday || field.defaultValue !== undefined)
+      .map((field) => [field.name, field.autoToday ? localToday() : field.defaultValue]),
   )
   if (section.value === 'inbox') {
     try {
@@ -358,6 +393,7 @@ async function submitForm() {
         items: [{
           item_name: form.value.product_name,
           quantity: form.value.quantity,
+          unit: form.value.unit,
           unit_price: form.value.product_price,
         }],
       }
@@ -466,13 +502,25 @@ async function submitLoanRepayment() {
   }
 }
 
-async function updateEmployee(employee) {
+function updateEmployee(employee) {
   if (!employee.is_active) return
+  removeEmployeeTarget.value = employee
+  removeEmployeeData.value = false
+}
+
+async function removeEmployee() {
+  const employee = removeEmployeeTarget.value
+  if (!employee) return
+  if (removeEmployeeData.value && !window.confirm(t('employeeDeleteDataConfirm', { name: employee.name }))) return
+  saving.value = true
   try {
-    await api.patch(`${businessUrl.value}/employees/${employee.id}`, { is_active: false })
+    await api.delete(`${businessUrl.value}/employees/${employee.id}`, { data: { delete_data: removeEmployeeData.value } })
+    removeEmployeeTarget.value = null
     await load()
   } catch (requestError) {
     error.value = requestError.response?.data?.message || t('errorGeneric')
+  } finally {
+    saving.value = false
   }
 }
 
@@ -550,7 +598,7 @@ function selectSection(key) {
     return
   }
   const needsReload = section.value === key && !query.value && page.value === 1
-  section.value = key
+  section.value = resolveSection(key)
   query.value = ''
   page.value = 1
   mobileMenuOpen.value = false
@@ -561,26 +609,43 @@ watch([section, selectedBusinessId, query, page, dateFrom, dateTo], () => {
   if (selectedBusinessId.value) localStorage.setItem('business_id', selectedBusinessId.value)
   else localStorage.removeItem('business_id')
   if (!workspaceReady) return
-  if (!isOwner.value && ['dashboard', 'reports', 'employees'].includes(section.value)) {
-    section.value = 'sales'
+  const permittedSection = resolveSection(section.value)
+  if (section.value !== permittedSection) {
+    section.value = permittedSection
     page.value = 1
     query.value = ''
     return
   }
+  syncWorkspaceRoute()
   load()
 })
 watch(query, () => { page.value = 1 })
+watch(
+  () => [route.params.businessId, route.params.section],
+  ([businessId, routeSection]) => {
+    if (!workspaceReady) return
+    const requestedBusinessId = String(businessId || '')
+    if (businesses.value.some((item) => String(item.id) === requestedBusinessId)) {
+      selectedBusinessId.value = requestedBusinessId
+    }
+    section.value = resolveSection(String(routeSection || ''))
+    syncWorkspaceRoute(true)
+  },
+)
 
 onMounted(async () => {
   try {
     await loadBusinesses()
-    if (isOwner.value) section.value = 'dashboard'
+    section.value = resolveSection(String(route.params.section || ''))
     changeReportPeriod('month')
     await nextTick()
     workspaceReady = true
+    await syncWorkspaceRoute(true)
     await load()
   } catch (requestError) {
     error.value = requestError.response?.data?.message || t('notConfigured')
+  } finally {
+    auth.finishDashboardPreparation()
   }
 })
 </script>
@@ -596,7 +661,7 @@ onMounted(async () => {
       </div>
       <div v-if="businesses.length" class="business-switcher">
         <span>{{ t('businessSelector') }}</span>
-        <div class="select-wrap"><BriefcaseBusiness :size="15" /><select v-model="selectedBusinessId" :aria-label="t('businessSelector')">
+        <div class="select-wrap"><BriefcaseBusiness :size="15" /><select v-model="selectedBusinessId" name="business-selector" :aria-label="t('businessSelector')">
           <option v-for="item in businesses" :key="item.id" :value="String(item.id)">{{ item.name }}</option>
         </select><ChevronDown :size="14" /></div>
       </div>
@@ -604,7 +669,7 @@ onMounted(async () => {
       <nav class="side-nav">
         <button v-for="item in nav.filter((entry) => can(entry.permission))" :key="item.key" class="nav-item" :class="{ 'nav-item-active': section === item.key }" @click="selectSection(item.key)">
           <component :is="item.icon" :size="18" stroke-width="1.8" />
-          <span>{{ t(item.key) }}</span>
+          <span>{{ t(item.label || item.key) }}</span>
           <span v-if="item.key === 'debts' && dashboard.debt_count" class="nav-count">{{ dashboard.debt_count }}</span>
         </button>
       </nav>
@@ -689,6 +754,13 @@ onMounted(async () => {
           </article>
           <div v-else-if="!loading && !error" class="state-message"><Mail :size="25" /><span>{{ t('emptyInbox') }}</span></div>
         </section>
+        <div v-if="section === 'inbox' && pagination && pagination.last_page > 1" class="pagination">
+          <span>{{ t('page') }} {{ pagination.current_page }} {{ t('of') }} {{ pagination.last_page }}</span>
+          <div>
+            <button class="button button-secondary" :disabled="page <= 1 || loading" @click="page--">{{ t('previous') }}</button>
+            <button class="button button-secondary" :disabled="page >= pagination.last_page || loading" @click="page++">{{ t('next') }}</button>
+          </div>
+        </div>
 
         <ProductsPanel
           v-if="section === 'products' && business"
@@ -697,11 +769,12 @@ onMounted(async () => {
           :can-create="can('products.create')"
           :can-edit="can('products.edit')"
           :can-delete="can('products.delete')"
+          :can-sell="can('sales.create')"
         />
 
         <section v-if="section !== 'dashboard' && section !== 'inbox' && section !== 'products'" class="panel-card">
           <div v-if="['sales', 'income', 'expenses', 'debts', 'reports'].includes(section)" class="table-toolbar">
-            <div v-if="['sales', 'income', 'expenses', 'debts', 'reports'].includes(section)" class="search-box"><Search :size="17" /><input v-model="query" :placeholder="t('search')" /></div>
+            <div v-if="['sales', 'income', 'expenses', 'debts', 'reports'].includes(section)" class="search-box"><Search :size="17" /><input v-model="query" name="workspace-search" :placeholder="t('search')" /></div>
             <div v-if="section === 'reports'" class="report-periods" role="group" :aria-label="t('reportPeriod')">
               <button v-for="period in ['week', 'month', 'year']" :key="period" class="button" :class="reportPeriod === period ? 'button-primary' : 'button-secondary'" @click="changeReportPeriod(period)">{{ t(period) }}</button>
             </div>
@@ -714,9 +787,28 @@ onMounted(async () => {
             <button v-else-if="section === 'sales'" class="text-action" @click="showSale(row)">{{ t('viewDetails') }}</button>
             <span v-else>—</span></td></tr></tbody></table></div>
           <div v-else-if="!loading && !error" class="state-message"><ClipboardList :size="25" /><span>{{ t('empty') }}</span></div>
-          <div v-if="pagination && pagination.last_page > 1" class="pagination"><span>{{ t('page') }} {{ pagination.current_page }} {{ t('of') }} {{ pagination.last_page }}</span><div><button class="button button-secondary" :disabled="page <= 1" @click="page--">{{ t('previous') }}</button><button class="button button-secondary" :disabled="page >= pagination.last_page" @click="page++">{{ t('next') }}</button></div></div>
+          <div v-if="pagination && pagination.last_page > 1" class="pagination"><span>{{ t('page') }} {{ pagination.current_page }} {{ t('of') }} {{ pagination.last_page }}</span><div><button class="button button-secondary" :disabled="page <= 1 || loading" @click="page--">{{ t('previous') }}</button><button class="button button-secondary" :disabled="page >= pagination.last_page || loading" @click="page++">{{ t('next') }}</button></div></div>
         </section>
         <p v-if="section === 'dashboard' && isOwner" class="profit-disclaimer">{{ t('noProfit') }}</p>
+      </div>
+
+      <div v-if="removeEmployeeTarget" class="modal-backdrop" @click.self="removeEmployeeTarget = null">
+        <section class="modal-card" role="dialog" aria-modal="true" :aria-label="t('removeEmployee')">
+          <div class="modal-heading">
+            <div><p class="eyebrow">{{ business?.name || t('brand') }}</p><h2>{{ t('removeEmployee') }} {{ removeEmployeeTarget.name }}</h2></div>
+            <button class="icon-button" type="button" :aria-label="t('cancel')" @click="removeEmployeeTarget = null">×</button>
+          </div>
+          <p class="inline-note">{{ t('employeeRemoveHint') }}</p>
+          <div class="permission-grid" role="radiogroup" :aria-label="t('employeeRemoveHint')">
+            <label class="permission-option"><input v-model="removeEmployeeData" type="radio" name="employee-data-removal" :value="false"> {{ t('employeeKeepData') }}</label>
+            <label class="permission-option"><input v-model="removeEmployeeData" type="radio" name="employee-data-removal" :value="true"> {{ t('employeeDeleteData') }}</label>
+          </div>
+          <p v-if="removeEmployeeData" class="form-error" role="alert">{{ t('employeeDeleteDataWarning') }}</p>
+          <div class="modal-actions">
+            <button class="button button-secondary" type="button" @click="removeEmployeeTarget = null">{{ t('cancel') }}</button>
+            <button class="button button-primary" type="button" :disabled="saving" @click="removeEmployee">{{ saving ? t('loading') : t('removeEmployee') }}</button>
+          </div>
+        </section>
       </div>
     </main>
 
@@ -781,13 +873,14 @@ onMounted(async () => {
         <div class="form-grid">
           <label v-for="field in fields[section]" :key="field.name" :class="{ 'form-span': field.type === 'textarea' }">
             {{ t(field.label) }}<span v-if="field.required" class="required-mark"> *</span>
-            <select v-if="field.type === 'select'" v-model="form[field.name]" :required="field.required">
+            <select v-if="field.type === 'select'" v-model="form[field.name]" :name="field.name" :required="field.required">
               <option value="">—</option>
               <option v-for="option in field.options" :key="typeof option === 'string' ? option : option.value" :value="typeof option === 'string' ? option : option.value">{{ typeof option === 'string' ? option : option.label }}</option>
             </select>
-            <input v-else-if="field.type === 'display'" :value="business?.name || ''" readonly />
-            <textarea v-else-if="field.type === 'textarea'" v-model="form[field.name]" rows="3" :required="field.required"></textarea>
-            <input v-else v-model="form[field.name]" :type="field.type" :required="field.required || (restoringEmployee && ['password', 'password_confirmation'].includes(field.name))" :min="field.min" :step="field.step" :minlength="field.minlength" :disabled="field.autoToday" :autocomplete="field.type === 'password' ? 'new-password' : undefined" />
+            <input v-else-if="field.type === 'display'" name="business-name" :value="business?.name || ''" readonly />
+            <textarea v-else-if="field.type === 'textarea'" v-model="form[field.name]" :name="field.name" rows="3" :required="field.required"></textarea>
+            <input v-else v-model="form[field.name]" :name="field.name" :type="field.type" :list="field.name === 'unit' ? 'sale-unit-suggestions' : undefined" :required="field.required || (restoringEmployee && ['password', 'password_confirmation'].includes(field.name))" :min="field.min" :step="field.step" :minlength="field.minlength" :maxlength="field.maxlength" :disabled="field.autoToday" :autocomplete="field.type === 'password' ? 'new-password' : undefined" />
+            <datalist v-if="field.name === 'unit'" id="sale-unit-suggestions"><option v-for="unit in commonUnits" :key="unit" :value="unit" /></datalist>
           </label>
         </div>
         <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
@@ -800,7 +893,7 @@ onMounted(async () => {
         <div class="modal-heading"><div><p class="eyebrow">{{ business?.name }}</p><h2>{{ saleDetails.sale_number }}</h2></div><button class="icon-button" :aria-label="t('cancel')" @click="saleDetails = null; paymentFormOpen = false"><X :size="19" /></button></div>
         <p class="inline-note">{{ t('salesNote') }}</p>
         <div class="detail-summary"><span>{{ t('businessName') }}<strong>{{ business?.name || '—' }}</strong></span><span>{{ t('date') }}<strong>{{ formatDate(saleDetails.sale_date) }}</strong></span><span>{{ t('amount') }}<strong>{{ formatMoney(saleDetails.total_amount) }}</strong></span><span>{{ t('status') }}<strong>{{ t(saleDetails.status) }}</strong></span></div>
-        <h3>{{ t('items') }}</h3><div v-for="item in saleDetails.items" :key="item.id" class="detail-row"><span>{{ item.item_name }} × {{ item.quantity }}</span><strong>{{ formatMoney(item.line_total) }}</strong></div>
+        <h3>{{ t('items') }}</h3><div v-for="item in saleDetails.items" :key="item.id" class="detail-row"><span>{{ item.item_name }} × {{ Number(item.quantity).toString() }} {{ item.unit || 'pieces' }}</span><strong>{{ formatMoney(item.line_total) }}</strong></div>
         <h3>{{ t('payments') }}</h3><p class="page-subtitle">{{ t('paymentNote') }}</p><div v-if="saleDetails.payments.length"><div v-for="payment in saleDetails.payments" :key="payment.id" class="detail-row"><span>{{ formatDate(payment.payment_date) }} · {{ payment.payment_method }}</span><strong>{{ formatMoney(payment.amount) }}</strong></div></div><p v-else class="state-message">{{ t('empty') }}</p>
         <button v-if="can('payments.create') && Number(saleDetails.balance) > 0" class="button button-primary payment-add" @click="openPaymentForm">{{ t('recordPayment') }}</button>
         <div class="modal-actions">
@@ -808,10 +901,10 @@ onMounted(async () => {
           <button type="button" class="button button-primary" @click="printReceipt">{{ t('downloadPdf') }}</button>
         </div>
         <form v-if="paymentFormOpen" class="payment-entry" @submit.prevent="submitPayment">
-          <label>{{ t('amount') }}<input v-model="paymentForm.amount" type="number" min="0.01" step="0.01" required /></label>
-          <label>{{ t('date') }}<input v-model="paymentForm.payment_date" type="date" required disabled /></label>
-          <label>{{ t('paymentMethod') }}<input v-model="paymentForm.payment_method" required /></label>
-          <label>{{ t('reference') }}<input v-model="paymentForm.reference" /></label>
+          <label>{{ t('amount') }}<input v-model="paymentForm.amount" name="payment-amount" type="number" min="0.01" step="0.01" required /></label>
+          <label>{{ t('date') }}<input v-model="paymentForm.payment_date" name="payment-date" type="date" required disabled /></label>
+          <label>{{ t('paymentMethod') }}<input v-model="paymentForm.payment_method" name="payment-method" required /></label>
+          <label>{{ t('reference') }}<input v-model="paymentForm.reference" name="payment-reference" /></label>
           <p v-if="paymentError" class="form-error" role="alert">{{ paymentError }}</p>
           <button type="button" class="button button-secondary" @click="paymentFormOpen = false">{{ t('cancel') }}</button>
           <button class="button button-primary" :disabled="paymentSaving">{{ paymentSaving ? t('loading') : t('save') }}</button>
@@ -823,9 +916,9 @@ onMounted(async () => {
         <div class="modal-heading"><div><p class="eyebrow">{{ t('businessLoan') }}</p><h2>{{ repaymentLoan.borrower_name }}</h2></div><button class="icon-button" type="button" :aria-label="t('cancel')" @click="repaymentLoan = null"><X :size="19" /></button></div>
         <p class="inline-note">{{ t('loanBalance') }}: {{ formatMoney(repaymentLoan.balance) }}</p>
         <div class="form-grid">
-          <label>{{ t('amount') }}<input v-model="repaymentForm.amount" type="number" min="0.01" :max="repaymentLoan.balance" step="0.01" required readonly /></label>
-          <label>{{ t('date') }}<input v-model="repaymentForm.payment_date" type="date" required disabled /></label>
-          <label class="form-span">{{ t('paymentDestination') }}<select v-model="repaymentForm.destination" required><option value="">—</option><option v-for="destination in ['income', 'expenses', 'sales']" :key="destination" :value="destination">{{ t(destination) }}</option></select></label>
+          <label>{{ t('amount') }}<input v-model="repaymentForm.amount" name="repayment-amount" type="number" min="0.01" :max="repaymentLoan.balance" step="0.01" required readonly /></label>
+          <label>{{ t('date') }}<input v-model="repaymentForm.payment_date" name="repayment-date" type="date" required disabled /></label>
+          <label class="form-span">{{ t('paymentDestination') }}<select v-model="repaymentForm.destination" name="repayment-destination" required><option value="">—</option><option v-for="destination in ['income', 'expenses', 'sales']" :key="destination" :value="destination">{{ t(destination) }}</option></select></label>
         </div>
         <p v-if="repaymentError" class="form-error" role="alert">{{ repaymentError }}</p>
         <div class="modal-actions"><button class="button button-secondary" type="button" @click="repaymentLoan = null">{{ t('cancel') }}</button><button class="button button-primary" :disabled="repaymentSaving">{{ repaymentSaving ? t('loading') : t('markAsPaid') }}</button></div>

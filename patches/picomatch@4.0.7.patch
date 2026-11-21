@@ -1,0 +1,72 @@
+--- a/lib/parse.js	
++++ b/lib/parse.js	
+@@ -283,9 +283,24 @@
+ 
+   return depth;
+ };
+ 
+-const analyzeRepeatedExtglob = (body, options) => {
++const ABSORBING_BRANCH_REGEX = /^(?:[^\\/()[\]{}|!@+*?"']|\?|\[[^\]\\/!^]+\]|\*(?!\*))+$/;
++
++const isAbsorbingBranch = body => {
++  return ABSORBING_BRANCH_REGEX.test(body) && body.replace(/\[[^\]]*\]/g, '').includes('*');
++};
++
++const hasWildcardToken = bodyTokens => {
++  return bodyTokens.some((token, index) => {
++    if (token.type !== 'star' && token.type !== 'globstar') return false;
++    if (token.value === '') return false;
++    const next = bodyTokens[index + 1];
++    return !(next && next.type === 'paren' && next.extglob === true && next.value === '(');
++  });
++};
++
++const analyzeRepeatedExtglob = (body, options, bodyTokens = []) => {
+   if (options.maxExtglobRecursion === false) {
+     return { risky: false };
+   }
+ 
+@@ -295,8 +310,19 @@
+       : constants.DEFAULT_MAX_EXTGLOB_RECURSION;
+ 
+   const branches = splitTopLevel(body).map(branch => branch.trim());
+ 
++  if (branches.length === 1 && hasWildcardToken(bodyTokens)) {
++    if (isAbsorbingBranch(body)) {
++      return { risky: false, collapse: true };
++    }
++
++    const hasSlash = bodyTokens.some(token => token.type === 'slash');
++    if (options.bash === true || !hasSlash) {
++      return { risky: true };
++    }
++  }
++
+   if (branches.length > 1) {
+     if (
+       branches.some(branch => branch === '') ||
+       branches.some(branch => /^[*?]+$/.test(branch)) ||
+@@ -538,9 +564,9 @@
+ 
+   const extglobClose = token => {
+     const literal = input.slice(token.startIndex, state.index + 1);
+     const body = input.slice(token.startIndex + 2, state.index);
+-    const analysis = analyzeRepeatedExtglob(body, opts);
++    const analysis = analyzeRepeatedExtglob(body, opts, tokens.slice(token.tokensIndex + 2));
+ 
+     if ((token.type === 'plus' || token.type === 'star') && analysis.risky) {
+       const safeOutput = analysis.safeOutput
+         ? (token.output ? '' : ONE_CHAR) + (opts.capture ? `(${analysis.safeOutput})` : analysis.safeOutput)
+@@ -564,8 +590,12 @@
+       decrement('parens');
+       return;
+     }
+ 
++    if (analysis.collapse === true && (token.type === 'plus' || token.type === 'star')) {
++      token.close = token.type === 'plus' ? ')' : ')?';
++    }
++
+     let output = token.close + (opts.capture ? ')' : '');
+     let rest;
+ 
+     if (token.type === 'negate') {

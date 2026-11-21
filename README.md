@@ -17,6 +17,12 @@ business Owners and Employees use the business workspace. Never put backend
 credentials or secrets in a `VITE_` variable. The interface does not provide
 public registration or payment processing.
 
+The frontend includes a local npm patch for picomatch 4.0.7 at
+`patches/picomatch@4.0.7.patch`. Use npm 12 and `npm ci` so the patch is applied
+on installation. This mitigates GHSA-fc5q-39xc-vjpf until an upstream fixed
+release is available; `npm audit` may still flag the published package version.
+Remove the patch after updating to an upstream release that includes the fix.
+
 Create a production build with `npm run build`. Vercel rewrites client routes
 to `index.html`. Deploy the Node API separately, set `VITE_API_URL` to its
 public API URL, and configure the frontend's exact origin in the API's
@@ -57,6 +63,10 @@ frontend. A business owner creates employee accounts from the Employees area.
    signed-in user's business memberships, selects a business, and requests
    that business's data when the active section or its filters change.
 
+The app signs out after 12 hours without user activity. Activity extends the
+server-side idle expiration; refresh tokens still retain their configured
+maximum lifetime.
+
 The local API URL fallback is `http://localhost:4000/api`. Set
 `VITE_API_URL` in `.env.local` when using a different API. Values prefixed
 with `VITE_` are included in browser code; never put passwords, API secrets,
@@ -74,6 +84,7 @@ or other credentials in them.
 | [`src/views/LoginView.vue`](./src/views/LoginView.vue) | Sign-in, forgot-password, reset-password, and lock countdown UI. |
 | [`src/views/WorkspaceView.vue`](./src/views/WorkspaceView.vue) | Business workspace, navigation, records, reports, employee and inbox UI. |
 | [`src/components/ProductsPanel.vue`](./src/components/ProductsPanel.vue) | Permission-gated product list, filters, CRUD form, image previews, and upload progress. |
+| [`src/components/PcInspectionReports.vue`](./src/components/PcInspectionReports.vue) | Multi-PC inspection form, saved report history, preparation progress, and combined PDF download. |
 | [`src/views/AdminView.vue`](./src/views/AdminView.vue) | Platform-level business administration. |
 | [`src/locales/en.json`](./src/locales/en.json), [`src/locales/sw.json`](./src/locales/sw.json) | English and Kiswahili interface strings. |
 | [`src/style.css`](./src/style.css) | Shared layouts, forms, tables, responsive rules, and visual styling. |
@@ -147,6 +158,10 @@ The workspace contains these sections:
   The backend validates and optimizes images before storing them; consult the
   Node backend README for migration, R2 environment variables, and exact
   upload limits. R2 credentials must never be added to frontend configuration.
+  The add form's **Use template product → PC** flow opens pre- and post-checkup
+  forms for one or more computers. Disk and battery ratings are derived from
+  percentages. Owners and employees can save business-scoped report history
+  and download a combined PDF showing the business and report preparer.
 - **Reports**: owner reporting for a selected date range and printing.
 - **Employees**: owner tools for listing, creating, deactivating, and restoring
   employees.
