@@ -793,3 +793,48 @@ tbody tr:hover { background: #fcfdfc; }
   .admin-theme-toggle { width: 32px; min-width: 32px; min-height: 32px; gap: 0; padding: 0; }
   .admin-theme-toggle span { display: none; }
 }
+@media (max-width: 600px) {
+  .admin-dark .admin-table tbody tr:not(.admin-state-row) {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-color: #304337;
+    background: linear-gradient(125deg, #19271e 0%, #17241b 68%, #1c2b21 100%);
+    box-shadow: 0 4px 12px rgb(0 0 0 / 16%);
+  }
+  .admin-dark .admin-table tbody tr:not(.admin-state-row)::before {
+    position: absolute;
+    z-index: -1;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 3px;
+    background: linear-gradient(180deg, #3c8251, #275d3b);
+    content: "";
+  }
+  .admin-dark .admin-table tbody tr:not(.admin-state-row)::after {
+    position: absolute;
+    z-index: -1;
+    top: -34px;
+    right: -24px;
+    width: 90px;
+    height: 90px;
+    border: 1px solid rgb(117 164 126 / 13%);
+    border-radius: 50%;
+    background: rgb(65 112 74 / 5%);
+    content: "";
+  }
+  .admin-dark .admin-table tbody tr:not(.admin-state-row):hover {
+    border-color: #45624d;
+    background: linear-gradient(125deg, #1d2d22 0%, #1a2920 68%, #203127 100%);
+  }
+  .admin-dark .admin-table tbody tr:not(.admin-state-row) > td {
+    position: relative;
+    z-index: 1;
+    border-color: #304136;
+    color: #c5d2c8;
+  }
+  .admin-dark .admin-table tbody tr:not(.admin-state-row) > td::before {
+    color: #9bab9f;
+  }
+}
