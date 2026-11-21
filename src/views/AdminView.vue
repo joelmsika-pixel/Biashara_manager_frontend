@@ -180,11 +180,11 @@ onMounted(async () => {
     <div class="admin-content">
       <section class="admin-welcome">
         <div>
-          <p class="admin-eyebrow"><Shield :size="14" /> Administration</p>
+          <p class="admin-eyebrow"><Shield :size="13" /> Platform administration</p>
           <h1>Business accounts</h1>
-          <p>Manage businesses, owners, and platform access from one place.</p>
+          <p>Manage business profiles, owners, and platform access.</p>
         </div>
-        <div class="admin-welcome-icon"><Building2 :size="31" /></div>
+        <button class="button admin-create-trigger" @click="openCreate"><Plus :size="16" /> Create business</button>
       </section>
 
       <div v-if="error" class="admin-alert" role="alert">{{ error }}</div>
@@ -228,7 +228,6 @@ onMounted(async () => {
           <div class="admin-toolbar-actions">
             <button class="button button-secondary" :disabled="loading" @click="toggleDeleted">{{ includeDeleted ? 'Hide removed' : 'Show removed' }}</button>
             <button class="button button-secondary admin-refresh" :disabled="loading" @click="loadBusinesses"><RefreshCw :size="16" /><span>Refresh</span></button>
-            <button class="button button-primary" @click="openCreate"><Plus :size="16" /> Create business</button>
           </div>
         </div>
 
@@ -256,10 +255,10 @@ onMounted(async () => {
                 <td>
                   <div class="admin-actions-cell">
                     <button v-if="item.deleted_at" class="admin-action-button restore" @click="restoreBusiness(item)">Restore</button>
-                      <template v-else>
-                        <button class="admin-action-button" :class="item.status === 'active' ? 'suspend' : 'activate'" @click="toggleStatus(item)">{{ item.status === 'active' ? 'Suspend' : 'Activate' }}</button>
-                        <button class="admin-action-button remove" @click="removeBusiness(item)"><Trash2 :size="13" />Remove</button>
-                      </template>
+                    <template v-else>
+                      <button class="admin-action-button" :class="item.status === 'active' ? 'suspend' : 'activate'" @click="toggleStatus(item)">{{ item.status === 'active' ? 'Suspend' : 'Activate' }}</button>
+                      <button class="admin-action-button remove" @click="removeBusiness(item)"><Trash2 :size="13" />Remove</button>
+                    </template>
                   </div>
                 </td>
               </tr>
@@ -276,28 +275,42 @@ onMounted(async () => {
       </section>
       </div>
 
-    <div v-if="formOpen" class="modal-backdrop" @click.self="formOpen = false">
-      <form class="modal-card" @submit.prevent="createBusiness">
-        <div class="panel-heading"><h2>Create a business</h2><button class="icon-button" type="button" aria-label="Close" @click="formOpen = false">×</button></div>
-        <div v-if="formError" class="form-error" role="alert">{{ formError }}</div>
-        <div class="form-grid">
-          <label>Business name<input v-model="form.name" name="business-name" required maxlength="150"></label>
-          <label>Business type<input v-model="form.business_type" name="business-type" maxlength="100"></label>
-          <label>Business phone<input v-model="form.phone" name="business-phone" maxlength="30"></label>
-          <label>Business email<input v-model="form.email" name="business-email" type="email" maxlength="150"></label>
-          <label>Address<input v-model="form.address" name="business-address" maxlength="1000"></label>
-          <label>Currency<select v-model="form.currency" name="business-currency"><option>TZS</option><option>KES</option><option>UGX</option><option>USD</option></select></label>
-          <label>Owner name<input v-model="form.owner_name" name="owner-name" required maxlength="150"></label>
-          <label>Owner email<input v-model="form.owner_email" name="owner-email" required type="email" maxlength="150"></label>
-          <label>Owner phone<input v-model="form.owner_phone" name="owner-phone" maxlength="30"></label>
-          <label>Initial owner password<input v-model="form.owner_password" name="owner-password" type="password" minlength="12" autocomplete="new-password"></label>
-          <label>Confirm initial owner password<input v-model="form.owner_password_confirmation" name="owner-password-confirmation" type="password" minlength="12" autocomplete="new-password"></label>
+    <div v-if="formOpen" class="modal-backdrop admin-modal-backdrop" @click.self="formOpen = false">
+      <form class="admin-create-dialog" @submit.prevent="createBusiness">
+        <header class="admin-create-header">
+          <span class="admin-create-icon"><Building2 :size="20" /></span>
+          <div><p>PLATFORM ADMINISTRATION</p><h2>Create a business</h2><small>Set up the business profile and assign its owner.</small></div>
+          <button class="admin-dialog-close" type="button" aria-label="Close" :disabled="saving" @click="formOpen = false"><X :size="18" /></button>
+        </header>
+        <div class="admin-create-body">
+          <div v-if="formError" class="admin-alert" role="alert">{{ formError }}</div>
+          <section class="admin-form-section">
+            <div class="admin-form-section-heading"><span><Building2 :size="16" /></span><div><h3>Business details</h3><p>Basic information shown on the business account.</p></div></div>
+            <div class="admin-create-grid">
+              <label>Business name <em>*</em><input v-model="form.name" name="business-name" required maxlength="150" placeholder="e.g. Greenfield Traders"></label>
+              <label>Business type<input v-model="form.business_type" name="business-type" maxlength="100" placeholder="e.g. Retail"></label>
+              <label>Business phone<input v-model="form.phone" name="business-phone" maxlength="30" placeholder="+255…"></label>
+              <label>Business email<input v-model="form.email" name="business-email" type="email" maxlength="150" placeholder="business@example.com"></label>
+              <label class="admin-form-span">Business address<input v-model="form.address" name="business-address" maxlength="1000" placeholder="Street, city, region"></label>
+              <label>Currency<select v-model="form.currency" name="business-currency"><option>TZS</option><option>KES</option><option>UGX</option><option>USD</option></select></label>
+            </div>
+          </section>
+          <section class="admin-form-section owner-section">
+            <div class="admin-form-section-heading"><span><UserRound :size="16" /></span><div><h3>Business owner</h3><p>Assign the primary account administrator.</p></div></div>
+            <div class="admin-create-grid">
+              <label>Owner full name <em>*</em><input v-model="form.owner_name" name="owner-name" required maxlength="150" placeholder="Full name"></label>
+              <label>Owner email <em>*</em><input v-model="form.owner_email" name="owner-email" required type="email" maxlength="150" placeholder="owner@example.com"></label>
+              <label>Owner phone<input v-model="form.owner_phone" name="owner-phone" maxlength="30" placeholder="+255…"></label>
+              <label>Initial password<input v-model="form.owner_password" name="owner-password" type="password" minlength="12" autocomplete="new-password" placeholder="At least 12 characters"></label>
+              <label class="admin-form-span">Confirm initial password<input v-model="form.owner_password_confirmation" name="owner-password-confirmation" type="password" minlength="12" autocomplete="new-password" placeholder="Enter the password again"></label>
+            </div>
+            <p class="admin-password-hint">A new owner password must have at least 12 characters. Existing accounts keep their current password.</p>
+          </section>
         </div>
-        <p class="page-subtitle">A new owner password must have at least 12 characters. Existing accounts keep their current password.</p>
-        <div class="heading-actions">
-          <button class="button button-secondary" type="button" @click="formOpen = false">Cancel</button>
-          <button class="button button-primary" type="submit" :disabled="saving">{{ saving ? 'Creating…' : 'Create business' }}</button>
-        </div>
+        <footer class="admin-create-footer">
+          <button class="button button-secondary" type="button" :disabled="saving" @click="formOpen = false">Cancel</button>
+          <button class="button admin-create-submit" type="submit" :disabled="saving"><Plus :size="15" />{{ saving ? 'Creating…' : 'Create business' }}</button>
+        </footer>
       </form>
     </div>
 
