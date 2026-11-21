@@ -48,13 +48,19 @@ async function refreshAccessToken(rejectedAccessToken, force = false) {
       return accessToken
     }
 
-    const { data } = await axios.post(
-      `${api.defaults.baseURL}/token/refresh`,
-      { refresh_token: refreshToken },
-      { headers: { Accept: 'application/json' }, timeout: api.defaults.timeout },
-    )
-    saveTokenPair(data)
-    return data.token
+    try {
+      const { data } = await axios.post(
+        `${api.defaults.baseURL}/token/refresh`,
+        { refresh_token: refreshToken },
+        { headers: { Accept: 'application/json' }, timeout: api.defaults.timeout },
+      )
+      saveTokenPair(data)
+      return data.token
+    } catch (error) {
+      const currentToken = localStorage.getItem('access_token')
+      if (localStorage.getItem('refresh_token') !== refreshToken && currentToken) return currentToken
+      throw error
+    }
   }
 
   if (typeof navigator !== 'undefined' && navigator.locks?.request) {
@@ -84,10 +90,9 @@ function isExpiredRefreshToken(error) {
 
 function retryTokenRefresh(error) {
   if (isExpiredRefreshToken(error)) {
-    clearSessionAndRedirect().catch((redirectError) => {
+    return clearSessionAndRedirect().catch((redirectError) => {
       console.error('Unable to redirect after the session expired.', redirectError)
     })
-    return
   }
 
   console.error('Unable to refresh the session; retrying shortly.', error)
@@ -144,7 +149,7 @@ api.interceptors.request.use(async (config) => {
     try {
       token = await getRefreshRequest(token)
     } catch (refreshError) {
-      await clearSessionAndRedirect()
+      await retryTokenRefresh(refreshError)
       return Promise.reject(refreshError)
     }
   }
@@ -185,8 +190,7 @@ api.interceptors.response.use(
       request.headers.Authorization = `Bearer ${token}`
       return api(request)
     } catch (refreshError) {
-      if (isExpiredRefreshToken(refreshError)) await clearSessionAndRedirect()
-      else console.error('Unable to refresh the session after an API request.', refreshError)
+      await retryTokenRefresh(refreshError)
       return Promise.reject(refreshError)
     }
   },

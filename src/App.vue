@@ -7,7 +7,7 @@ import { useAuthStore } from './stores/auth'
 
 const idleTimeoutMs = 12 * 60 * 60 * 1000
 const sessionActivityDebounceMs = 1000
-const sessionHeartbeatIntervalMs = 60 * 1000
+const sessionHeartbeatIntervalMs = 30 * 1000
 const activityEvents = ['pointerdown', 'pointermove', 'keydown', 'touchstart', 'scroll', 'focus']
 const activityListenerOptions = { capture: true, passive: true }
 const auth = useAuthStore()
