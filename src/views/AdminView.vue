@@ -235,24 +235,24 @@ onMounted(async () => {
           <table class="admin-table">
             <thead><tr><th>Business</th><th>Owner</th><th>Currency</th><th>Status</th><th class="admin-actions-heading">Actions</th></tr></thead>
             <tbody>
-              <tr v-if="loading"><td colspan="5"><div class="admin-empty"><span class="admin-loading-dot"></span>Loading businesses…</div></td></tr>
-              <tr v-else-if="!businesses.length"><td colspan="5"><div class="admin-empty"><Building2 :size="22" />{{ search ? 'No businesses match your search.' : 'No businesses yet.' }}</div></td></tr>
+              <tr v-if="loading" class="admin-state-row"><td colspan="5"><div class="admin-empty">Loading businesses…</div></td></tr>
+              <tr v-else-if="!businesses.length" class="admin-state-row"><td colspan="5"><div class="admin-empty"><Building2 :size="22" />{{ search ? 'No businesses match your search.' : 'No businesses yet.' }}</div></td></tr>
               <tr v-for="item in businesses" :key="item.id">
-                <td>
+                <td data-label="Business">
                   <div class="admin-business-cell">
                     <span class="admin-business-avatar">{{ item.name?.slice(0, 1)?.toUpperCase() || 'B' }}</span>
                     <span class="admin-business-text"><strong>{{ item.name }}</strong><small>{{ item.business_type || 'Business account' }}</small></span>
                   </div>
                 </td>
-                <td>
+                <td data-label="Owner">
                   <div class="admin-owner-cell">
                     <span class="admin-owner-icon"><UserRound :size="16" /></span>
                     <span class="admin-owner-text"><strong>{{ item.users?.[0]?.name || 'Owner not listed' }}</strong><small>{{ item.users?.[0]?.email || '—' }}</small></span>
                   </div>
                 </td>
-                <td><span class="admin-currency">{{ item.currency || '—' }}</span></td>
-                <td><span class="admin-status" :class="item.deleted_at ? 'removed' : item.status"><i></i>{{ item.deleted_at ? 'Removed' : item.status }}</span></td>
-                <td>
+                <td data-label="Currency"><span class="admin-currency">{{ item.currency || '—' }}</span></td>
+                <td data-label="Status"><span class="admin-status" :class="item.deleted_at ? 'removed' : item.status">{{ item.deleted_at ? 'Removed' : item.status }}</span></td>
+                <td data-label="Actions">
                   <div class="admin-actions-cell">
                     <button v-if="item.deleted_at" class="admin-action-button restore" @click="restoreBusiness(item)">Restore</button>
                     <template v-else>
