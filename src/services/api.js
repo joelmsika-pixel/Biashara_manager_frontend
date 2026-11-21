@@ -10,6 +10,7 @@ const api = axios.create({
 
 let refreshRequest = null
 let tokenRefreshTimer = null
+const refreshRetryDelayMs = 10_000
 
 function saveTokenPair(data) {
   localStorage.setItem('access_token', data.token)
@@ -77,6 +78,28 @@ async function clearSessionAndRedirect() {
   if (router.currentRoute.value.name !== 'login') await router.push({ name: 'login' })
 }
 
+function isExpiredRefreshToken(error) {
+  return [401, 422].includes(error.response?.status)
+}
+
+function retryTokenRefresh(error) {
+  if (isExpiredRefreshToken(error)) {
+    clearSessionAndRedirect().catch((redirectError) => {
+      console.error('Unable to redirect after the session expired.', redirectError)
+    })
+    return
+  }
+
+  console.error('Unable to refresh the session; retrying shortly.', error)
+  if (tokenRefreshTimer !== null) clearTimeout(tokenRefreshTimer)
+  tokenRefreshTimer = setTimeout(() => {
+    tokenRefreshTimer = null
+    const currentToken = localStorage.getItem('access_token')
+    if (!currentToken || !localStorage.getItem('refresh_token')) return
+    getRefreshRequest(currentToken).catch(retryTokenRefresh)
+  }, refreshRetryDelayMs)
+}
+
 function scheduleTokenRefresh() {
   if (tokenRefreshTimer !== null) clearTimeout(tokenRefreshTimer)
   tokenRefreshTimer = null
@@ -93,7 +116,7 @@ function scheduleTokenRefresh() {
     tokenRefreshTimer = null
     const currentToken = localStorage.getItem('access_token')
     if (!currentToken || !localStorage.getItem('refresh_token')) return
-    getRefreshRequest(currentToken).catch(clearSessionAndRedirect)
+    getRefreshRequest(currentToken).catch(retryTokenRefresh)
   }, delay)
 }
 
@@ -131,7 +154,13 @@ api.interceptors.request.use(async (config) => {
 })
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.config.url?.includes('/session/activity') && response.data?.expires_at) {
+      localStorage.setItem('access_token_expires_at', response.data.expires_at)
+      scheduleTokenRefresh()
+    }
+    return response
+  },
   async (error) => {
     const request = error.config
     if (
@@ -156,7 +185,8 @@ api.interceptors.response.use(
       request.headers.Authorization = `Bearer ${token}`
       return api(request)
     } catch (refreshError) {
-      await clearSessionAndRedirect()
+      if (isExpiredRefreshToken(refreshError)) await clearSessionAndRedirect()
+      else console.error('Unable to refresh the session after an API request.', refreshError)
       return Promise.reject(refreshError)
     }
   },
