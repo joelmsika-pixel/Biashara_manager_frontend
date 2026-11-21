@@ -849,9 +849,9 @@ tbody tr:hover { background: #fcfdfc; }
     position: relative;
     isolation: isolate;
     overflow: hidden;
-    border-color: #285238;
-    background: linear-gradient(125deg, #10271a 0%, #10271a 68%, #153322 100%);
-    box-shadow: 0 4px 12px rgb(0 0 0 / 16%);
+    border-color: #1d3826;
+    background: linear-gradient(125deg, #09150d 0%, #0b190f 68%, #0e2014 100%);
+    box-shadow: 0 5px 14px rgb(0 0 0 / 24%);
   }
   .admin-dark .admin-table tbody tr:not(.admin-state-row)::before {
     position: absolute;
@@ -876,8 +876,8 @@ tbody tr:hover { background: #fcfdfc; }
     content: "";
   }
   .admin-dark .admin-table tbody tr:not(.admin-state-row):hover {
-    border-color: #3a704a;
-    background: linear-gradient(125deg, #14301f 0%, #14301f 68%, #193b26 100%);
+    border-color: #2b5638;
+    background: linear-gradient(125deg, #0d1d12 0%, #0d1d12 68%, #11271a 100%);
   }
   .admin-dark .admin-table tbody tr:not(.admin-state-row) > td {
     position: relative;
