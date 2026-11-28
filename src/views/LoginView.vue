@@ -1,5 +1,5 @@
 <script setup>
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { BriefcaseBusiness, Eye, EyeOff, LockKeyhole } from '@lucide/vue'
@@ -24,7 +24,50 @@ const message = ref('')
 const lockRemaining = ref(0)
 const showPassword = ref(false)
 const rememberMe = ref(localStorage.getItem('remember_login') === 'true')
+const rememberCheckboxAnimating = ref(false)
+const loginFieldsVisible = ref(false)
+const loginRevealAnimating = ref(false)
+const promoSlideIndex = ref(0)
+const webAppVersion = __WEB_APP_VERSION__
+const webAppBuildVersion = __WEB_APP_BUILD_VERSION__
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+const promoPaused = ref(prefersReducedMotion)
+const promoSlides = computed(() => [
+  {
+    title: t('loginPromoControl'),
+    image: '/images/login-business-control.jpg',
+    alt: t('loginPromoControlAlt'),
+  },
+  {
+    title: t('loginPromoGrowth'),
+    image: '/images/login-business-growth.jpg',
+    alt: t('loginPromoGrowthAlt'),
+  },
+  {
+    title: t('loginPromoProfit'),
+    image: '/images/login-business-profit.jpg',
+    alt: t('loginPromoProfitAlt'),
+  },
+])
 let lockTimer
+let promoTimer
+let rememberCheckboxAnimationFrame
+let rememberCheckboxAnimationTimer
+
+function animateRememberCheckbox() {
+  if (prefersReducedMotion) return
+  rememberCheckboxAnimating.value = false
+  if (rememberCheckboxAnimationFrame) cancelAnimationFrame(rememberCheckboxAnimationFrame)
+  if (rememberCheckboxAnimationTimer) clearTimeout(rememberCheckboxAnimationTimer)
+  rememberCheckboxAnimationFrame = requestAnimationFrame(() => {
+    rememberCheckboxAnimating.value = true
+    rememberCheckboxAnimationFrame = undefined
+    rememberCheckboxAnimationTimer = window.setTimeout(() => {
+      rememberCheckboxAnimating.value = false
+      rememberCheckboxAnimationTimer = undefined
+    }, 400)
+  })
+}
 
 function lockStorageKey(value = email.value) {
   return `login_lock_until:${value.trim().toLowerCase()}`
@@ -65,11 +108,67 @@ function formatCountdown(seconds) {
   return `${minutes}:${remainder}`
 }
 
+function revealLoginFields() {
+  if (loginRevealAnimating.value) return
+  if (prefersReducedMotion) {
+    showLoginFields()
+    return
+  }
+  loginRevealAnimating.value = true
+}
+
+function finishLoginReveal(event) {
+  if (!['login-reveal-overflow', 'login-reveal-overflow-desktop'].includes(event.animationName)) return
+  loginRevealAnimating.value = false
+  showLoginFields()
+}
+
+function showLoginFields() {
+  loginFieldsVisible.value = true
+  nextTick(() => document.getElementById('email')?.focus())
+}
+
+function advancePromoSlide() {
+  promoSlideIndex.value = (promoSlideIndex.value + 1) % promoSlides.value.length
+}
+
+function startPromoTimer() {
+  if (promoTimer) clearInterval(promoTimer)
+  promoTimer = undefined
+  if (!promoPaused.value) promoTimer = setInterval(advancePromoSlide, 6500)
+}
+
+function pausePromo() {
+  promoPaused.value = true
+  startPromoTimer()
+}
+
+function resumePromo() {
+  if (prefersReducedMotion) return
+  if (document.activeElement?.closest('.login-layout')) return
+  promoPaused.value = false
+  startPromoTimer()
+}
+
+function handlePromoFocusOut(event) {
+  if (!event.currentTarget.contains(event.relatedTarget)) resumePromo()
+}
+
 watch(email, restoreLoginLock)
 
-onMounted(restoreLoginLock)
+onMounted(() => {
+  document.documentElement.classList.add('login-page-fixed')
+  document.body.classList.add('login-page-fixed')
+  restoreLoginLock()
+  startPromoTimer()
+})
 onUnmounted(() => {
+  document.documentElement.classList.remove('login-page-fixed')
+  document.body.classList.remove('login-page-fixed')
   if (lockTimer) clearInterval(lockTimer)
+  if (promoTimer) clearInterval(promoTimer)
+  if (rememberCheckboxAnimationFrame) cancelAnimationFrame(rememberCheckboxAnimationFrame)
+  if (rememberCheckboxAnimationTimer) clearTimeout(rememberCheckboxAnimationTimer)
 })
 
 async function submit() {
@@ -140,52 +239,81 @@ async function submit() {
 </script>
 
 <template>
-  <main class="login-shell">
+  <main class="login-shell" :class="{ 'login-shell-prompt': mode === 'login' && !loginFieldsVisible, 'login-shell-expanded': mode === 'login' && loginFieldsVisible, 'login-shell-forgot': mode === 'forgot' }">
     <LanguageSwitcher />
-    <section class="login-card">
-      <div class="brand-mark"><BriefcaseBusiness :size="22" /></div>
-      <p class="eyebrow">{{ t('brand') }}</p>
-      <h1>{{ mode === 'login' ? t('login') : mode === 'register' ? t('createAccount') : mode === 'forgot' ? t('forgotPassword') : t('resetPassword') }}</h1>
-      <p class="muted">{{ mode === 'login' ? t('loginSubtitle') : mode === 'register' ? t('registerSubtitle') : mode === 'forgot' ? t('forgotSubtitle') : t('resetPassword') }}</p>
-      <form class="login-form" @submit.prevent="submit">
-        <template v-if="mode === 'register'">
-          <label for="full-name">{{ t('fullName') }}</label>
-          <input id="full-name" v-model.trim="fullName" type="text" maxlength="150" required />
-          <label for="business-name">{{ t('businessName') }}</label>
-          <input id="business-name" v-model.trim="businessName" type="text" maxlength="150" required />
-          <label for="phone">{{ t('phone') }}</label>
-          <input id="phone" v-model.trim="phone" type="tel" maxlength="30" required />
-          <label for="currency">{{ t('currency') }}</label>
-          <select id="currency" v-model="currency"><option value="TZS">TZS</option><option value="KES">KES</option><option value="UGX">UGX</option><option value="USD">USD</option></select>
-        </template>
-        <label for="email">{{ t('email') }}</label>
-        <input id="email" v-model.trim="email" type="email" autocomplete="username" :readonly="(mode === 'reset' && Boolean(route.query.email)) || (mode === 'login' && lockRemaining > 0)" :disabled="mode === 'login' && lockRemaining > 0" required />
-        <template v-if="mode !== 'forgot'">
-          <label for="password">{{ mode === 'reset' ? t('newPassword') : t('password') }}</label>
-          <div class="password-field">
-            <LockKeyhole :size="17" />
-            <input id="password" v-model="password" :type="showPassword ? 'text' : 'password'" :autocomplete="mode === 'reset' || mode === 'register' ? 'new-password' : 'current-password'" :minlength="mode === 'reset' || mode === 'register' ? 12 : 1" :disabled="mode === 'login' && lockRemaining > 0" required />
-            <button v-if="mode !== 'reset'" type="button" class="password-toggle" :aria-label="showPassword ? t('hidePassword') : t('showPassword')" @click="showPassword = !showPassword">
-              <component :is="showPassword ? EyeOff : Eye" :size="17" />
+    <div class="login-layout" @mouseenter="pausePromo" @mouseleave="resumePromo" @focusin="pausePromo" @focusout="handlePromoFocusOut">
+      <section class="login-intro" :aria-label="t('brand')">
+        <div class="login-brand">
+          <div class="brand-mark"><BriefcaseBusiness :size="22" /></div>
+          <p class="eyebrow">{{ t('brand') }}</p>
+        </div>
+        <p class="login-brand-tagline">{{ t('tagline') }}</p>
+        <section class="login-promo" role="region" :aria-label="t('loginPromoLabel')">
+          <Transition name="login-promo" mode="out-in">
+            <div :key="promoSlideIndex" class="login-promo-slide">
+              <img
+                class="login-promo-image"
+                :src="promoSlides[promoSlideIndex].image"
+                :alt="promoSlides[promoSlideIndex].alt"
+              />
+              <h2 class="login-promo-title">{{ promoSlides[promoSlideIndex].title }}</h2>
+            </div>
+          </Transition>
+        </section>
+      </section>
+      <section class="login-card" :class="{ 'login-card-expanded': mode === 'login' && loginFieldsVisible, 'login-card-forgot': mode === 'forgot' }">
+        <header class="login-heading">
+          <h1>{{ mode === 'login' ? t('login') : mode === 'register' ? t('createAccount') : mode === 'forgot' ? t('forgotPassword') : t('resetPassword') }}</h1>
+          <p class="muted">{{ mode === 'login' ? t('loginSubtitle') : mode === 'register' ? t('registerSubtitle') : mode === 'forgot' ? t('forgotSubtitle') : t('resetPassword') }}</p>
+        </header>
+        <form class="login-form" @submit.prevent="submit">
+          <button v-if="mode === 'login' && !loginFieldsVisible" class="login-reveal-button" :class="{ 'login-reveal-button-animating': loginRevealAnimating }" type="button" @click="revealLoginFields" @animationend="finishLoginReveal">{{ t('loginButton') }}</button>
+          <template v-else>
+            <template v-if="mode === 'register'">
+              <label for="full-name">{{ t('fullName') }}</label>
+              <input id="full-name" v-model.trim="fullName" type="text" maxlength="150" required />
+              <label for="business-name">{{ t('businessName') }}</label>
+              <input id="business-name" v-model.trim="businessName" type="text" maxlength="150" required />
+              <label for="phone">{{ t('phone') }}</label>
+              <input id="phone" v-model.trim="phone" type="tel" maxlength="30" required />
+              <label for="currency">{{ t('currency') }}</label>
+              <select id="currency" v-model="currency"><option value="TZS">TZS</option><option value="KES">KES</option><option value="UGX">UGX</option><option value="USD">USD</option></select>
+            </template>
+            <label for="email">{{ t('email') }}</label>
+            <input id="email" v-model.trim="email" type="email" autocomplete="username" :readonly="(mode === 'reset' && Boolean(route.query.email)) || (mode === 'login' && lockRemaining > 0)" :disabled="mode === 'login' && lockRemaining > 0" required />
+            <template v-if="mode !== 'forgot'">
+              <label for="password">{{ mode === 'reset' ? t('newPassword') : t('password') }}</label>
+              <div class="password-field">
+                <LockKeyhole :size="17" />
+                <input id="password" v-model="password" :type="showPassword ? 'text' : 'password'" :autocomplete="mode === 'reset' || mode === 'register' ? 'new-password' : 'current-password'" :minlength="mode === 'reset' || mode === 'register' ? 12 : 1" :disabled="mode === 'login' && lockRemaining > 0" required />
+                <button v-if="mode !== 'reset'" type="button" class="password-toggle" :aria-label="showPassword ? t('hidePassword') : t('showPassword')" @click="showPassword = !showPassword">
+                  <component :is="showPassword ? EyeOff : Eye" :size="17" />
+                </button>
+              </div>
+            </template>
+            <div v-if="mode === 'login'" class="login-remember-actions">
+              <label class="remember-row"><input v-model="rememberMe" :class="{ 'remember-checkbox-animating': rememberCheckboxAnimating }" type="checkbox" @change="animateRememberCheckbox" /><span>{{ t('rememberMe') }}</span></label>
+              <button type="button" class="login-forgot-link" @click="mode = 'forgot'; error = ''; message = ''">{{ t('forgotPassword') }}</button>
+            </div>
+            <template v-if="mode === 'reset' || mode === 'register'">
+              <label for="password-confirmation">{{ t('confirmPassword') }}</label>
+              <input id="password-confirmation" v-model="passwordConfirmation" type="password" autocomplete="new-password" minlength="12" required />
+            </template>
+            <p v-if="error" class="form-error" role="alert">{{ error }}</p>
+            <p v-if="mode === 'login' && lockRemaining > 0" class="form-error" role="alert">{{ t('loginLocked', { time: formatCountdown(lockRemaining) }) }}</p>
+            <p v-if="message" class="success-message" role="status">{{ message }}</p>
+            <button class="button button-primary full-width" type="submit" :disabled="auth.loading || (mode === 'login' && lockRemaining > 0)">
+              {{ auth.loading ? t('signingIn') : mode === 'login' && lockRemaining > 0 ? formatCountdown(lockRemaining) : mode === 'register' ? t('createAccount') : mode === 'login' ? t('loginButton') : mode === 'forgot' ? t('sendResetLink') : t('resetPassword') }}
             </button>
-          </div>
-        </template>
-        <label v-if="mode === 'login'" class="remember-row"><input v-model="rememberMe" type="checkbox" /><span>{{ t('rememberMe') }}</span></label>
-        <template v-if="mode === 'reset' || mode === 'register'">
-          <label for="password-confirmation">{{ t('confirmPassword') }}</label>
-          <input id="password-confirmation" v-model="passwordConfirmation" type="password" autocomplete="new-password" minlength="12" required />
-        </template>
-        <p v-if="error" class="form-error" role="alert">{{ error }}</p>
-        <p v-if="mode === 'login' && lockRemaining > 0" class="form-error" role="alert">{{ t('loginLocked', { time: formatCountdown(lockRemaining) }) }}</p>
-        <p v-if="message" class="success-message" role="status">{{ message }}</p>
-        <button class="button button-primary full-width" type="submit" :disabled="auth.loading || (mode === 'login' && lockRemaining > 0)">
-          {{ auth.loading ? t('signingIn') : mode === 'login' && lockRemaining > 0 ? formatCountdown(lockRemaining) : mode === 'register' ? t('createAccount') : mode === 'login' ? t('signIn') : mode === 'forgot' ? t('sendResetLink') : t('resetPassword') }}
-        </button>
-      </form>
-      <div v-if="mode === 'login'" class="login-links"><button type="button" @click="mode = 'forgot'; error = ''; message = ''">{{ t('forgotPassword') }}</button><button type="button" @click="mode = 'register'; error = ''; message = ''">{{ t('createAccount') }}</button></div>
-      <div v-else class="login-links"><button type="button" @click="mode = 'login'; error = ''; message = ''">{{ t('backToLogin') }}</button></div>
-      <p v-if="mode === 'login'" class="login-footnote">{{ t('noAccount') }}</p>
-    </section>
-    <p class="login-tagline">{{ t('tagline') }}</p>
+          </template>
+        </form>
+        <div v-if="mode !== 'login'" class="login-links"><button type="button" @click="mode = 'login'; error = ''; message = ''">{{ t('backToLogin') }}</button></div>
+        <p v-if="mode === 'login'" class="login-footnote">{{ t('noAccount') }}</p>
+        <div v-if="mode === 'login' && loginFieldsVisible" class="login-app-footer">
+          <p class="login-developer-credit"><span>{{ t('developedBy') }}</span><img src="/images/Asset%2018.png" alt="Godob" /></p>
+          <p class="login-build-info">{{ t('appBuildInfo', { version: webAppVersion, build: webAppBuildVersion }) }}</p>
+        </div>
+      </section>
+    </div>
   </main>
 </template>
