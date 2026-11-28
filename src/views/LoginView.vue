@@ -301,7 +301,6 @@ async function submit() {
           <div class="brand-mark"><BriefcaseBusiness :size="22" /></div>
           <p class="eyebrow">{{ t('brand') }}</p>
         </div>
-        <p class="login-brand-tagline">{{ t('tagline') }}</p>
         <section class="login-promo" role="region" :aria-label="t('loginPromoLabel')">
           <Transition name="login-promo" mode="out-in">
             <div :key="promoSlideIndex" class="login-promo-slide">
@@ -328,7 +327,10 @@ async function submit() {
                   :alt="promoSlides[promoSlideIndex].alt"
                 />
               </picture>
-              <h2 class="login-promo-title">{{ promoSlides[promoSlideIndex].title }}</h2>
+              <div class="login-promo-copy">
+                <h2 class="login-promo-title">{{ promoSlides[promoSlideIndex].title }}</h2>
+                <p class="login-brand-tagline">{{ t('tagline') }}</p>
+              </div>
             </div>
           </Transition>
         </section>
