@@ -2,21 +2,12 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ChevronDown } from '@lucide/vue'
-import franceFlag from '../assets/france-flag.svg'
-import saudiArabiaFlag from '../assets/saudi-arabia-flag.svg'
-import tanzaniaFlag from '../assets/tanzania-flag.svg'
-import ukFlag from '../assets/uk-flag.svg'
+import { languageOptions } from '../constants/languages'
 
 const { locale, t } = useI18n()
 const root = ref(null)
 const open = ref(false)
-const languages = [
-  { code: 'en', name: 'English (UK)', flag: ukFlag },
-  { code: 'fr', name: 'Français', flag: franceFlag },
-  { code: 'ar', name: 'العربية', flag: saudiArabiaFlag },
-  { code: 'sw', name: 'Kiswahili (Tanzania)', flag: tanzaniaFlag },
-]
-const selected = computed(() => languages.find((language) => language.code === locale.value) || languages[0])
+const selected = computed(() => languageOptions.find((language) => language.code === locale.value) || languageOptions[0])
 
 function chooseLanguage(language) {
   locale.value = language.code
@@ -63,7 +54,7 @@ onBeforeUnmount(() => {
     </button>
     <div v-if="open" class="language-picker-menu" role="menu" :aria-label="t('selectLanguage')">
       <button
-        v-for="language in languages"
+        v-for="language in languageOptions"
         :key="language.code"
         class="language-picker-option"
         :class="{ selected: locale === language.code }"

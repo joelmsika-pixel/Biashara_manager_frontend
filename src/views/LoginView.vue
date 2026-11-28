@@ -2,15 +2,16 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { BriefcaseBusiness, Eye, EyeOff, LockKeyhole } from '@lucide/vue'
+import { ArrowRight, BriefcaseBusiness, Eye, EyeOff, LockKeyhole } from '@lucide/vue'
 import { useAuthStore } from '../stores/auth'
 import api from '../services/api'
 import LanguageSwitcher from '../components/LanguageSwitcher.vue'
+import { languageOptions } from '../constants/languages'
 
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const mode = ref(route.name === 'reset-password' ? 'reset' : 'login')
 const email = ref(String(route.query.email || ''))
 const password = ref('')
@@ -27,16 +28,18 @@ const rememberMe = ref(localStorage.getItem('remember_login') === 'true')
 const rememberCheckboxAnimating = ref(false)
 const loginFieldsVisible = ref(false)
 const loginRevealAnimating = ref(false)
+const languageSelectionVisible = ref(false)
 const promoSlideIndex = ref(0)
 const webAppVersion = __WEB_APP_VERSION__
 const webAppBuildVersion = __WEB_APP_BUILD_VERSION__
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-const promoPaused = ref(prefersReducedMotion)
+const mobilePromoQuery = window.matchMedia('(max-width: 720px)')
+const promoPaused = ref(prefersReducedMotion || mobilePromoQuery.matches)
 const promoSlides = computed(() => [
   {
     title: t('loginPromoControl'),
     image: '/images/login-business-control.jpg',
-    alt: t('loginPromoControlAlt'),
+    alt: t('loginPromoWelcomeAlt'),
   },
   {
     title: t('loginPromoGrowth'),
@@ -51,6 +54,7 @@ const promoSlides = computed(() => [
 ])
 let lockTimer
 let promoTimer
+let promoPointerStart
 let rememberCheckboxAnimationFrame
 let rememberCheckboxAnimationTimer
 
@@ -117,6 +121,26 @@ function revealLoginFields() {
   loginRevealAnimating.value = true
 }
 
+function startMobileOnboarding() {
+  promoSlideIndex.value = 1
+  languageSelectionVisible.value = true
+  nextTick(() => document.querySelector('.login-language-option')?.focus())
+}
+
+function closeLanguageSelection() {
+  languageSelectionVisible.value = false
+  promoSlideIndex.value = 0
+  nextTick(() => document.querySelector('.login-reveal-button-mobile')?.focus())
+}
+
+function chooseOnboardingLanguage(language) {
+  locale.value = language.code
+  promoSlideIndex.value = 2
+  languageSelectionVisible.value = false
+  loginFieldsVisible.value = true
+  nextTick(() => document.getElementById('email')?.focus())
+}
+
 function finishLoginReveal(event) {
   if (!['login-reveal-overflow', 'login-reveal-overflow-desktop'].includes(event.animationName)) return
   loginRevealAnimating.value = false
@@ -132,10 +156,38 @@ function advancePromoSlide() {
   promoSlideIndex.value = (promoSlideIndex.value + 1) % promoSlides.value.length
 }
 
+function handlePromoPointerStart(event) {
+  if (!mobilePromoQuery.matches || (event.pointerType === 'mouse' && event.button !== 0)) return
+  promoPointerStart = { x: event.clientX, y: event.clientY }
+}
+
+function handlePromoPointerEnd(event) {
+  if (!promoPointerStart) return
+  const deltaX = promoPointerStart.x - event.clientX
+  const deltaY = promoPointerStart.y - event.clientY
+  promoPointerStart = undefined
+  if (Math.abs(deltaX) < 55 || Math.abs(deltaX) < Math.abs(deltaY)) return
+
+  if (deltaX > 0 && promoSlideIndex.value === 0) {
+    promoSlideIndex.value = 1
+    languageSelectionVisible.value = true
+    nextTick(() => document.querySelector('.login-language-option')?.focus())
+  } else if (deltaX < 0 && promoSlideIndex.value === 1) {
+    closeLanguageSelection()
+  } else if (deltaX < 0 && promoSlideIndex.value > 1) {
+    promoSlideIndex.value -= 1
+  }
+}
+
+function handlePromoViewportChange() {
+  promoPaused.value = prefersReducedMotion || mobilePromoQuery.matches
+  startPromoTimer()
+}
+
 function startPromoTimer() {
   if (promoTimer) clearInterval(promoTimer)
   promoTimer = undefined
-  if (!promoPaused.value) promoTimer = setInterval(advancePromoSlide, 6500)
+  if (!promoPaused.value && !mobilePromoQuery.matches) promoTimer = setInterval(advancePromoSlide, 6500)
 }
 
 function pausePromo() {
@@ -159,12 +211,14 @@ watch(email, restoreLoginLock)
 onMounted(() => {
   document.documentElement.classList.add('login-page-fixed')
   document.body.classList.add('login-page-fixed')
+  mobilePromoQuery.addEventListener('change', handlePromoViewportChange)
   restoreLoginLock()
   startPromoTimer()
 })
 onUnmounted(() => {
   document.documentElement.classList.remove('login-page-fixed')
   document.body.classList.remove('login-page-fixed')
+  mobilePromoQuery.removeEventListener('change', handlePromoViewportChange)
   if (lockTimer) clearInterval(lockTimer)
   if (promoTimer) clearInterval(promoTimer)
   if (rememberCheckboxAnimationFrame) cancelAnimationFrame(rememberCheckboxAnimationFrame)
@@ -239,7 +293,7 @@ async function submit() {
 </script>
 
 <template>
-  <main class="login-shell" :class="{ 'login-shell-prompt': mode === 'login' && !loginFieldsVisible, 'login-shell-expanded': mode === 'login' && loginFieldsVisible, 'login-shell-forgot': mode === 'forgot' }">
+  <main class="login-shell" :class="{ 'login-shell-prompt': mode === 'login' && !loginFieldsVisible, 'login-shell-expanded': mode === 'login' && loginFieldsVisible, 'login-shell-forgot': mode === 'forgot', 'login-shell-language': languageSelectionVisible }" @pointerdown="handlePromoPointerStart" @pointerup="handlePromoPointerEnd" @pointercancel="promoPointerStart = undefined">
     <LanguageSwitcher />
     <div class="login-layout" @mouseenter="pausePromo" @mouseleave="resumePromo" @focusin="pausePromo" @focusout="handlePromoFocusOut">
       <section class="login-intro" :aria-label="t('brand')">
@@ -251,11 +305,28 @@ async function submit() {
         <section class="login-promo" role="region" :aria-label="t('loginPromoLabel')">
           <Transition name="login-promo" mode="out-in">
             <div :key="promoSlideIndex" class="login-promo-slide">
-              <img
-                class="login-promo-image"
-                :src="promoSlides[promoSlideIndex].image"
-                :alt="promoSlides[promoSlideIndex].alt"
-              />
+              <picture>
+                <source
+                  v-if="promoSlideIndex === 0"
+                  media="(max-width: 720px)"
+                  srcset="/images/Confident%20Welcome%20in%20the%20Modern%20Office.png"
+                />
+                <source
+                  v-else-if="promoSlideIndex === 1"
+                  media="(max-width: 720px)"
+                  srcset="/images/Smiling%20Professional%20at%20the%20Office%20Desk.png"
+                />
+                <source
+                  v-else-if="promoSlideIndex === 2"
+                  media="(max-width: 720px)"
+                  srcset="/images/Triumphant%20Professional%20at%20Modern%20Entrance.png"
+                />
+                <img
+                  class="login-promo-image"
+                  :src="promoSlides[promoSlideIndex].image"
+                  :alt="promoSlides[promoSlideIndex].alt"
+                />
+              </picture>
               <h2 class="login-promo-title">{{ promoSlides[promoSlideIndex].title }}</h2>
             </div>
           </Transition>
@@ -267,7 +338,10 @@ async function submit() {
           <p class="muted">{{ mode === 'login' ? t('loginSubtitle') : mode === 'register' ? t('registerSubtitle') : mode === 'forgot' ? t('forgotSubtitle') : t('resetPassword') }}</p>
         </header>
         <form class="login-form" @submit.prevent="submit">
-          <button v-if="mode === 'login' && !loginFieldsVisible" class="login-reveal-button" :class="{ 'login-reveal-button-animating': loginRevealAnimating }" type="button" @click="revealLoginFields" @animationend="finishLoginReveal">{{ t('loginButton') }}</button>
+          <button v-if="mode === 'login' && !loginFieldsVisible" class="login-reveal-button login-reveal-button-desktop" :class="{ 'login-reveal-button-animating': loginRevealAnimating }" type="button" @click="revealLoginFields" @animationend="finishLoginReveal">{{ t('loginButton') }}</button>
+          <button v-if="mode === 'login' && !loginFieldsVisible" class="login-reveal-button login-reveal-button-mobile" type="button" @click="startMobileOnboarding">
+            {{ t('getStarted') }} <ArrowRight :size="18" aria-hidden="true" />
+          </button>
           <template v-else>
             <template v-if="mode === 'register'">
               <label for="full-name">{{ t('fullName') }}</label>
@@ -315,5 +389,34 @@ async function submit() {
         </div>
       </section>
     </div>
+    <Transition name="login-language">
+      <div
+        v-if="languageSelectionVisible"
+        class="login-language-overlay"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="t('selectLanguage')"
+        @click.self="closeLanguageSelection"
+        @keydown.esc="closeLanguageSelection"
+      >
+        <section class="login-language-card">
+          <h2>{{ t('selectLanguage') }}</h2>
+          <div class="login-language-options">
+            <button
+              v-for="language in languageOptions"
+              :key="language.code"
+              class="login-language-option"
+              type="button"
+              @click="chooseOnboardingLanguage(language)"
+            >
+              <img :src="language.flag" :alt="language.name" />
+              <span>{{ language.name }}</span>
+              <ArrowRight :size="17" aria-hidden="true" />
+            </button>
+          </div>
+          <button class="login-language-cancel" type="button" @click="closeLanguageSelection">{{ t('cancel') }}</button>
+        </section>
+      </div>
+    </Transition>
   </main>
 </template>
