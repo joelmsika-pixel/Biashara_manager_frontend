@@ -382,7 +382,7 @@ tbody tr:hover { background: #fcfdfc; }
   .login-intro { position: fixed; z-index: 0; inset: 0; width: 100vw; height: 100vh; height: 100dvh; min-height: 100svh; max-width: none; border-radius: 0; }
   .login-brand { gap: 10px; }
   .login-intro .brand-mark { width: 40px; height: 40px; flex-basis: 40px; border-radius: 12px; }
-  .login-intro .brand-mark svg { width: 19px; }
+  .login-intro .brand-mark svg { width: 27px; height: 27px; }
   .login-brand { top: 19px; left: 18px; }
   .login-intro .eyebrow { font-size: 24px; font-weight: 750; }
   .login-brand-tagline { top: 78px; left: 20px; max-width: calc(100vw - 40px); font-size: 18px; font-weight: 600; line-height: 1.35; }
