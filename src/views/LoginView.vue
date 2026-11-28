@@ -327,7 +327,7 @@ async function submit() {
                   :alt="promoSlides[promoSlideIndex].alt"
                 />
               </picture>
-              <div class="login-promo-copy" :class="{ 'login-promo-copy-second': promoSlideIndex === 1 }">
+              <div class="login-promo-copy" :class="{ 'login-promo-copy-first': promoSlideIndex === 0, 'login-promo-copy-second': promoSlideIndex === 1 }">
                 <h2 class="login-promo-title">{{ promoSlides[promoSlideIndex].title }}</h2>
                 <p class="login-brand-tagline">{{ t('tagline') }}</p>
               </div>
