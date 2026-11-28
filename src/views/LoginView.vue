@@ -308,7 +308,7 @@ async function submit() {
                 <source
                   v-if="promoSlideIndex === 0"
                   media="(max-width: 720px)"
-                  srcset="/images/Confident%20Welcome%20in%20the%20Modern%20Office.webp"
+                  srcset="/images/modern-office-executive-portrait.webp"
                 />
                 <source
                   v-else-if="promoSlideIndex === 1"
