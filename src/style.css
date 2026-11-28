@@ -284,6 +284,7 @@ tbody tr:hover { background: #fcfdfc; }
 }
 .login-form > label { margin-top: 3px; color: #56665d; font-size: 11px; font-weight: 650; }
 .login-form > input { margin-bottom: 3px; min-height: 38px; }
+.login-form > input, .password-field input { font-size: 16px; }
 .login-form > input, .login-form > select, .password-field input { border-radius: 0; }
 .login-form input:focus-visible, .login-form select:focus-visible { outline: 1px solid #4d9568; outline-offset: 0; border-color: #4d9568; }
 .password-field { position: relative; display: flex; align-items: center; color: #98a49d; }
