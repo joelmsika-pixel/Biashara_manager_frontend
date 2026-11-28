@@ -38,17 +38,17 @@ const promoPaused = ref(prefersReducedMotion || mobilePromoQuery.matches)
 const promoSlides = computed(() => [
   {
     title: t('loginPromoControl'),
-    image: '/images/login-business-control.jpg',
+    image: '/images/login-business-control.webp',
     alt: t('loginPromoWelcomeAlt'),
   },
   {
     title: t('loginPromoGrowth'),
-    image: '/images/login-business-growth.jpg',
+    image: '/images/login-business-growth.webp',
     alt: t('loginPromoGrowthAlt'),
   },
   {
     title: t('loginPromoProfit'),
-    image: '/images/login-business-profit.jpg',
+    image: '/images/login-business-profit.webp',
     alt: t('loginPromoProfitAlt'),
   },
 ])
@@ -309,21 +309,22 @@ async function submit() {
                 <source
                   v-if="promoSlideIndex === 0"
                   media="(max-width: 720px)"
-                  srcset="/images/Confident%20Welcome%20in%20the%20Modern%20Office.png"
+                  srcset="/images/Confident%20Welcome%20in%20the%20Modern%20Office.webp"
                 />
                 <source
                   v-else-if="promoSlideIndex === 1"
                   media="(max-width: 720px)"
-                  srcset="/images/Smiling%20Professional%20at%20the%20Office%20Desk.png"
+                  srcset="/images/Smiling%20Professional%20at%20the%20Office%20Desk.webp"
                 />
                 <source
                   v-else-if="promoSlideIndex === 2"
                   media="(max-width: 720px)"
-                  srcset="/images/Triumphant%20Professional%20at%20Modern%20Entrance.png"
+                  srcset="/images/Triumphant%20Professional%20at%20Modern%20Entrance.webp"
                 />
                 <img
                   class="login-promo-image"
                   :src="promoSlides[promoSlideIndex].image"
+                  :fetchpriority="promoSlideIndex === 0 ? 'high' : 'auto'"
                   :alt="promoSlides[promoSlideIndex].alt"
                 />
               </picture>
