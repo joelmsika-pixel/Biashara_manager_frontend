@@ -262,6 +262,18 @@ tbody tr:hover { background: #fcfdfc; }
 :root[dir="rtl"] .login-language-option svg { transform: rotate(180deg); }
 @media (min-width: 721px) {
   .login-layout { position: relative; width: min(100%, 760px); padding: 18px 22px; }
+  .login-brand { gap: 2px; }
+  .login-promo-slide { position: relative; }
+  .login-promo-slide::after { position: absolute; z-index: 1; right: 0; bottom: 0; left: 0; height: 48%; background: linear-gradient(to bottom, rgb(0 0 0 / 0%), rgb(0 0 0 / 72%) 100%); content: ""; pointer-events: none; }
+  .login-promo-copy { z-index: 2; }
+  .login-intro .brand-mark { width: 56px; height: 56px; flex: 0 0 56px; }
+  .login-intro .brand-mark svg { width: 28px; height: 28px; }
+  .login-intro .eyebrow { font-size: 18px; }
+  .login-promo-copy { inset: auto 24px 24px 24px; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 8px; text-align: left; }
+  .login-promo-title { position: static; max-width: 21ch; font-size: 21px; line-height: 1.25; text-align: left; }
+  .login-brand-tagline { position: static; max-width: 32ch; font-size: 11px; line-height: 1.45; text-align: left; }
+  :root[dir="rtl"] .login-promo-copy { text-align: right; }
+  :root[dir="rtl"] .login-promo-title, :root[dir="rtl"] .login-brand-tagline { text-align: right; }
   .login-card-login .login-heading, .login-card-forgot .login-heading { text-align: center; }
   .login-card-login .login-heading h1, .login-card-forgot .login-heading h1 { color: #174e34; font-size: 26px; font-weight: 700; letter-spacing: -.7px; }
   .login-card-login .login-heading h1::after, .login-card-forgot .login-heading h1::after { display: block; width: 34px; height: 3px; margin: 9px auto 0; border-radius: 999px; background: #176f4c; content: ""; }

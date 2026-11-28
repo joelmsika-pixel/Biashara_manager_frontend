@@ -38,17 +38,17 @@ const promoPaused = ref(prefersReducedMotion || mobilePromoQuery.matches)
 const promoSlides = computed(() => [
   {
     title: t('loginPromoControl'),
-    image: '/images/login-business-control.webp',
+    image: '/images/modern-office-executive-portrait.webp',
     alt: t('loginPromoWelcomeAlt'),
   },
   {
     title: t('loginPromoGrowth'),
-    image: '/images/login-business-growth.webp',
+    image: '/images/Smiling%20Professional%20at%20the%20Office%20Desk.webp',
     alt: t('loginPromoGrowthAlt'),
   },
   {
     title: t('loginPromoProfit'),
-    image: '/images/login-business-profit.webp',
+    image: '/images/Triumphant%20Professional%20at%20Modern%20Entrance.webp',
     alt: t('loginPromoProfitAlt'),
   },
 ])
