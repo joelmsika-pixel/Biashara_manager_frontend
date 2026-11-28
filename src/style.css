@@ -242,8 +242,16 @@ tbody tr:hover { background: #fcfdfc; }
   to { opacity: 0; transform: scale(1.28); }
 }
 @media (min-width: 721px) {
-  .login-layout { position: relative; }
-  .login-app-footer { position: absolute; bottom: -40px; left: 0; width: 100%; margin: 0; padding: 0; }
+  .login-layout { position: relative; width: min(100%, 760px); padding: 18px 22px; }
+  .login-card-login .login-heading, .login-card-forgot .login-heading { text-align: center; }
+  .login-card-login .login-heading h1, .login-card-forgot .login-heading h1 { color: #174e34; font-size: 26px; font-weight: 700; letter-spacing: -.7px; }
+  .login-card-login .login-heading h1::after, .login-card-forgot .login-heading h1::after { display: block; width: 34px; height: 3px; margin: 9px auto 0; border-radius: 999px; background: #176f4c; content: ""; }
+  .login-card-login .login-heading .muted { display: none; }
+  .login-card-forgot .login-heading .muted { max-width: 32ch; margin: 8px auto 0; color: #6f7f75; font-size: 13px; line-height: 1.55; text-align: center; }
+  .remember-row { font-size: 12px; }
+  .login-form .login-forgot-link { font-size: 12px; }
+  .login-card-forgot .login-links button { font-size: 12px; }
+  .login-app-footer { position: absolute; bottom: -58px; left: 0; width: 100%; margin: 0; padding: 0; }
   .login-reveal-button { box-shadow: 0 4px 11px rgb(23 111 76 / 20%), 0 1px 4px rgb(0 0 0 / 9%); }
   .login-reveal-button:hover { box-shadow: 0 6px 15px rgb(23 111 76 / 25%), 0 2px 6px rgb(0 0 0 / 11%); }
   .login-reveal-button-animating { animation: login-reveal-overflow-desktop .44s ease-out both; }
@@ -282,6 +290,12 @@ tbody tr:hover { background: #fcfdfc; }
 .login-app-footer { margin: auto 0 0; }
 .login-developer-credit { display: none; }
 .login-build-info { margin: 0; padding-top: 14px; color: #7f8e84; font-size: 9px; font-weight: 500; text-align: center; }
+@media (min-width: 721px) {
+  .login-layout .login-app-footer { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0; padding: 0; }
+  .login-layout .login-app-footer .login-developer-credit { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0; color: #7f8e84; font-size: 10px; font-weight: 500; }
+  .login-layout .login-app-footer .login-developer-credit img { display: block; width: 78px; max-height: 18px; object-fit: contain; }
+  .login-layout .login-app-footer .login-build-info { padding-top: 0; }
+}
 .success-message { margin: 3px 0; color: #35784d; font-size: 11px; }
 .form-error { margin: 3px 0; color: #af4942; font-size: 11px; }
 .modal-backdrop { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; overflow-y: auto; padding: 22px; background: rgb(20 31 25 / 40%); backdrop-filter: blur(2px); }
@@ -360,7 +374,11 @@ tbody tr:hover { background: #fcfdfc; }
   .login-card { position: relative; z-index: 1; width: min(100%, 370px); padding: 22px; border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
   .login-card-expanded { display: flex; flex-direction: column; width: 100%; max-width: none; min-height: 60dvh; padding: 18px 22px calc(18px + env(safe-area-inset-bottom)); border: 0; border-top: 1px solid rgb(255 255 255 / 92%); border-radius: 20px 20px 0 0; background: rgb(255 255 255 / 97%); box-shadow: 0 -16px 40px rgb(0 0 0 / 26%); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
   .login-card-forgot { display: flex; flex-direction: column; width: 100%; max-width: none; padding: 24px 22px calc(24px + env(safe-area-inset-bottom)); border: 0; border-top: 1px solid rgb(255 255 255 / 92%); border-radius: 20px 20px 0 0; background: rgb(255 255 255 / 97%); box-shadow: 0 -16px 40px rgb(0 0 0 / 26%); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
-  .login-card-forgot .login-heading h1 { font-size: 26px; }
+  .login-card-expanded .login-heading, .login-card-forgot .login-heading { text-align: center; }
+  .login-card-expanded .login-heading h1, .login-card-forgot .login-heading h1 { color: #174e34; font-size: 26px; font-weight: 700; letter-spacing: -.7px; }
+  .login-card-expanded .login-heading h1::after, .login-card-forgot .login-heading h1::after { display: block; width: 34px; height: 3px; margin: 9px auto 0; border-radius: 999px; background: #176f4c; content: ""; }
+  .login-card-expanded .login-heading .muted, .login-card-forgot .login-heading .muted { max-width: 32ch; margin: 8px auto 0; color: #6f7f75; font-size: 13px; line-height: 1.55; }
+  .login-card-expanded .login-heading .muted { display: none; }
   .login-card-forgot .login-links { margin-top: 16px; }
   .login-card-forgot .login-links button { font-size: 12px; }
   .login-form > input, .password-field input { min-height: 44px; }
@@ -370,7 +388,7 @@ tbody tr:hover { background: #fcfdfc; }
   .remember-row { font-size: 12px; }
   .login-forgot-link { font-size: 12px; }
   .login-form .button { width: 90%; min-height: 46px; justify-self: center; font-size: 15px; }
-  .login-app-footer { display: flex; flex-direction: column; align-items: center; gap: 5px; margin-bottom: 18px; padding-top: 14px; }
+  .login-app-footer { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 18px; padding-top: 14px; }
   .login-developer-credit { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0 0 16px; color: #7f8e84; font-size: 10px; font-weight: 500; }
   .login-developer-credit img { display: block; width: 78px; max-height: 18px; object-fit: contain; }
   .login-build-info { padding-top: 0; }
@@ -385,7 +403,11 @@ tbody tr:hover { background: #fcfdfc; }
   .login-shell-expanded { padding: 0; }
   .login-shell-expanded .login-layout, .login-shell-forgot .login-layout { min-height: 100dvh; padding: 0; }
   .login-shell-expanded .login-card-expanded { padding: 10px 18px calc(10px + env(safe-area-inset-bottom)); }
-  .login-shell-expanded .login-developer-credit { margin-bottom: 8px; }
+  .login-shell-expanded .login-heading { padding-bottom: 12px; }
+  .login-shell-expanded .login-heading h1::after { margin-top: 5px; }
+  .login-shell-expanded .login-heading .muted { margin-top: 5px; line-height: 1.45; }
+  .login-shell-expanded .login-app-footer { margin-bottom: 12px; }
+  .login-shell-expanded .login-developer-credit { margin-bottom: 4px; }
   .login-card-forgot { padding: 18px 18px calc(18px + env(safe-area-inset-bottom)); }
   .login-form > input, .password-field input { min-height: 42px; }
   .login-form { gap: 6px; margin-top: 14px; }

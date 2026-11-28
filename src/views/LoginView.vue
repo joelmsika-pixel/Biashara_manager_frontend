@@ -261,7 +261,7 @@ async function submit() {
           </Transition>
         </section>
       </section>
-      <section class="login-card" :class="{ 'login-card-expanded': mode === 'login' && loginFieldsVisible, 'login-card-forgot': mode === 'forgot' }">
+      <section class="login-card" :class="{ 'login-card-login': mode === 'login', 'login-card-expanded': mode === 'login' && loginFieldsVisible, 'login-card-forgot': mode === 'forgot' }">
         <header class="login-heading">
           <h1>{{ mode === 'login' ? t('login') : mode === 'register' ? t('createAccount') : mode === 'forgot' ? t('forgotPassword') : t('resetPassword') }}</h1>
           <p class="muted">{{ mode === 'login' ? t('loginSubtitle') : mode === 'register' ? t('registerSubtitle') : mode === 'forgot' ? t('forgotSubtitle') : t('resetPassword') }}</p>
@@ -309,7 +309,7 @@ async function submit() {
         </form>
         <div v-if="mode !== 'login'" class="login-links"><button type="button" @click="mode = 'login'; error = ''; message = ''">{{ t('backToLogin') }}</button></div>
         <p v-if="mode === 'login'" class="login-footnote">{{ t('noAccount') }}</p>
-        <div v-if="mode === 'login' && loginFieldsVisible" class="login-app-footer">
+        <div v-if="mode === 'forgot' || (mode === 'login' && loginFieldsVisible)" class="login-app-footer">
           <p class="login-developer-credit"><span>{{ t('developedBy') }}</span><img src="/images/Asset%2018.png" alt="Godob" /></p>
           <p class="login-build-info">{{ t('appBuildInfo', { version: webAppVersion, build: webAppBuildVersion }) }}</p>
         </div>
