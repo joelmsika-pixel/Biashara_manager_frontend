@@ -387,7 +387,7 @@ tbody tr:hover { background: #fcfdfc; }
   .login-intro .eyebrow { font-size: 24px; font-weight: 750; }
   .login-brand-tagline { top: 78px; left: 20px; max-width: calc(100vw - 40px); font-size: 18px; font-weight: 600; line-height: 1.35; }
   .login-promo-title { right: 20px; bottom: 24px; left: 20px; font-size: clamp(30px, 10vw, 38px); line-height: 1.05; text-align: left; text-wrap: balance; }
-  .login-shell:not(.login-shell-prompt) .login-promo-title { top: 12%; bottom: auto; font-size: clamp(26px, 7.7vw, 30px); line-height: 1.15; }
+  .login-shell:not(.login-shell-prompt) .login-promo-title { top: 22%; bottom: auto; font-size: clamp(26px, 7.7vw, 30px); line-height: 1.15; }
   .login-shell-prompt .login-promo-title { bottom: calc(50% + 24px); font-size: clamp(32px, 10vw, 40px); }
   :root[dir="rtl"] .login-brand, :root[dir="rtl"] .login-brand-tagline { right: 18px; }
   :root[dir="rtl"] .login-promo-title { text-align: right; }

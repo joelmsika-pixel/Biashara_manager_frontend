@@ -1,4 +1,4 @@
-# Biashara Manager frontend
+# Bizikua frontend
 
 Vue 3, Vite, Vue Router, Pinia, Axios, Vue I18n, and Tailwind CSS 4.
 
