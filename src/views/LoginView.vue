@@ -355,12 +355,12 @@ async function submit() {
               <select id="currency" v-model="currency"><option value="TZS">TZS</option><option value="KES">KES</option><option value="UGX">UGX</option><option value="USD">USD</option></select>
             </template>
             <label for="email">{{ t('email') }}</label>
-            <input id="email" v-model.trim="email" type="email" autocomplete="username" :readonly="(mode === 'reset' && Boolean(route.query.email)) || (mode === 'login' && lockRemaining > 0)" :disabled="mode === 'login' && lockRemaining > 0" required />
+            <input id="email" v-model.trim="email" type="email" :placeholder="t('email')" autocomplete="username" :readonly="(mode === 'reset' && Boolean(route.query.email)) || (mode === 'login' && lockRemaining > 0)" :disabled="mode === 'login' && lockRemaining > 0" required />
             <template v-if="mode !== 'forgot'">
               <label for="password">{{ mode === 'reset' ? t('newPassword') : t('password') }}</label>
               <div class="password-field">
                 <LockKeyhole :size="17" />
-                <input id="password" v-model="password" :type="showPassword ? 'text' : 'password'" :autocomplete="mode === 'reset' || mode === 'register' ? 'new-password' : 'current-password'" :minlength="mode === 'reset' || mode === 'register' ? 12 : 1" :disabled="mode === 'login' && lockRemaining > 0" required />
+                <input id="password" v-model="password" :type="showPassword ? 'text' : 'password'" :placeholder="mode === 'reset' ? t('newPassword') : t('password')" :autocomplete="mode === 'reset' || mode === 'register' ? 'new-password' : 'current-password'" :minlength="mode === 'reset' || mode === 'register' ? 12 : 1" :disabled="mode === 'login' && lockRemaining > 0" required />
                 <button v-if="mode !== 'reset'" type="button" class="password-toggle" :aria-label="showPassword ? t('hidePassword') : t('showPassword')" @click="showPassword = !showPassword">
                   <component :is="showPassword ? EyeOff : Eye" :size="17" />
                 </button>

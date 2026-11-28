@@ -293,7 +293,7 @@ tbody tr:hover { background: #fcfdfc; }
 .password-field .password-toggle svg { position: static; pointer-events: auto; }
 .login-remember-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0; }
 .remember-row { display: flex !important; flex-direction: row !important; align-items: center; gap: 8px; color: #4d5b53; }
-.remember-row input { flex: 0 0 16px; width: 16px; height: 16px; min-height: 16px; padding: 0; cursor: pointer; }
+.remember-row input { flex: 0 0 16px; width: 16px; height: 16px; min-height: 16px; padding: 0; accent-color: #15714b; cursor: pointer; }
 .remember-checkbox-animating { animation: remember-checkbox-overflow .4s ease-out; }
 @keyframes remember-checkbox-overflow {
   45% { transform: scale(1.15); }
